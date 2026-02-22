@@ -10,6 +10,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&display=swap" rel="stylesheet">
     <!-- Three.js r128 global (no ES module / no CORS issue) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- GLTFLoader for loading .glb character models -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 </head>
 
 <body>
@@ -22,32 +24,36 @@
 
         <!-- ── Start Screen ── -->
         <div id="start-screen" class="overlay">
-            <div class="glass-card">
-                <div class="heart-logo">💓</div>
-                <h1>Arif &amp; Ajeng</h1>
-                <p>Labirin cinta isometrik — satu tombol, dua hati.</p>
+            <div class="hud-container">
+                <div class="hud-frame left"></div>
+                <div class="hud-frame right"></div>
 
-                <div class="controls-hint">
-                    <div class="hint-row">
-                        <div class="char-badge blue">🔵 Arif</div>
-                        <div class="arrow-keys">
-                            <span class="key-cluster">
-                                <kbd class="key-sm">W</kbd><br>
-                                <kbd class="key-sm">A</kbd><kbd class="key-sm">S</kbd><kbd class="key-sm">D</kbd>
-                            </span>
-                            <span class="or-text">atau</span>
-                            <span class="key-cluster">
-                                <kbd class="key-sm">↑</kbd><br>
-                                <kbd class="key-sm">←</kbd><kbd class="key-sm">↓</kbd><kbd class="key-sm">→</kbd>
-                            </span>
-                        </div>
-                        <div class="char-badge pink">Ajeng 🔴</div>
+                <div class="main-menu-content">
+                    <div class="glitch-title" data-text="ARIF & AJENG">ARIF & AJENG</div>
+                    <div class="sub-title">COSMIC REUNION PROTOCOL</div>
+
+                    <div class="menu-actions">
+                        <button id="start-button" class="btn-hud main">
+                            <span class="btn-glitch"></span>
+                            INITIATE MISSION
+                        </button>
                     </div>
-                    <p class="hint-note">⚡ Kedua karakter bergerak BERSAMAAN!<br>Temukan jalur yang tepat agar mereka
-                        bertemu.</p>
-                </div>
 
-                <button id="start-button" class="btn-primary">Mulai Petualangan </button>
+                    <div class="controls-grid">
+                        <div class="ctrl-box arif">
+                            <span class="label">UNIT: ARIF</span>
+                            <div class="keys">WASD / ARROWS</div>
+                        </div>
+                        <div class="ctrl-box sync">
+                            <div class="sync-icon">⚡</div>
+                            <span class="unit-desc">SYNC MOVEMENT ACTIVE</span>
+                        </div>
+                        <div class="ctrl-box ajeng">
+                            <span class="label">UNIT: AJENG</span>
+                            <div class="keys">WASD / ARROWS</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 

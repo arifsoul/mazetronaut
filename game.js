@@ -13,7 +13,7 @@
     const MAZE_H = 25;
     const CELL = 4;
     const WALL_H = 3.5;
-    const MOVE_SPD = 7.0;  // cells per second
+    const MOVE_SPD = 8.5;  // snappy movement
     const WIN_DIST = CELL * 1.6;
     const LIGHT_RANGE = 17;   // torch radius (world units)
 
@@ -58,6 +58,7 @@
     let curPink = [...THEMES[0].pink];
     let curBlue = [...THEMES[0].blue];
     let ambLight = null;   // ref to ambient light for recolor
+    let fusionEffect = null; // fusion visual controller
 
     // ── Meeting Point & Meteors ──────────────────────────────────
     let meetingPoint = { col: 0, row: 0, mesh: null };
@@ -378,15 +379,8 @@
     }
 
     // =============================================
-    // 3D CHARACTERS — Space Theme
+    // 3D CHARACTERS — GLB Assets
     // =============================================
-
-    function lightenColor(hex, a) {
-        const r = Math.min(255, ((hex >> 16) & 0xff) + Math.round(a * 255));
-        const gv = Math.min(255, ((hex >> 8) & 0xff) + Math.round(a * 255));
-        const b = Math.min(255, (hex & 0xff) + Math.round(a * 255));
-        return (r << 16) | (gv << 8) | b;
-    }
 
     function addLight(g, color, intensity, dist, px, py, pz) {
         const l = new THREE.PointLight(color, intensity, dist, 1.8);
@@ -395,7 +389,114 @@
         return l;
     }
 
-    // ── Arif: Space Explorer Astronaut ─────────────────────────
+    // ── Load GLB Characters ───────────────────────────────────
+    function loadCharacters(onReady) {
+        const loader = new THREE.GLTFLoader();
+        const MX0 = (MAZE_W - 1) * CELL / 2, MZ0 = (MAZE_H - 1) * CELL / 2;
+
+        let arifLoaded = false, ajengLoaded = false;
+        const tryReady = () => { if (arifLoaded && ajengLoaded) onReady(); };
+
+        function setupGLBChar(gltfScene, torchColor) {
+            // Wrapper group – position/rotation/scale controlled by game
+            const wrapper = new THREE.Group();
+
+            // Scale GLB to desired gameplay height (3.2 world units)
+            const box = new THREE.Box3().setFromObject(gltfScene);
+            const size = new THREE.Vector3();
+            box.getSize(size);
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const targetHeight = 3.2;
+            const baseScale = targetHeight / maxDim;
+
+            // Recompute bounding box AFTER applying scale to get correct offset
+            gltfScene.scale.setScalar(baseScale);
+            gltfScene.updateMatrixWorld(true);
+            const box2 = new THREE.Box3().setFromObject(gltfScene);
+            // Shift GLB up so its bottom sits at y=0 inside wrapper
+            gltfScene.position.y = -box2.min.y;
+
+            wrapper.add(gltfScene);
+
+            // Torchlight on wrapper (will move with wrapper)
+            addLight(wrapper, torchColor, 4.5, LIGHT_RANGE, 0, 5, 0);
+
+            // Enable shadows
+            gltfScene.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = false; } });
+
+            return { wrapper, baseScale };
+        }
+
+        // ── Load Arif (blue torchlight) ──
+        loader.load(
+            'arif.glb',
+            (gltf) => {
+                const { wrapper, baseScale } = setupGLBChar(gltf.scene, 0x0088ff);
+                scene.add(wrapper);
+                arif = { group: wrapper, col: 1, row: 1, targetCol: 1, targetRow: 1, moving: false, baseScale: 1 };
+
+                // Menu position (floating left, larger for showcase)
+                wrapper.position.set(MX0 - 7, 0, MZ0);
+                wrapper.rotation.y = 0.4;
+                wrapper.scale.setScalar(2.2);  // 2.2× bigger than gameplay size
+
+                arifLoaded = true;
+                tryReady();
+            },
+            undefined,
+            (err) => {
+                console.warn('arif.glb gagal dimuat, menggunakan karakter prosedural.', err);
+                const arifG = makeChibiBoy(0x0088ff);
+                scene.add(arifG);
+                arif = { group: arifG, col: 1, row: 1, targetCol: 1, targetRow: 1, moving: false, baseScale: 1 };
+                arifG.position.set(MX0 - 7, 0, MZ0);
+                arifG.rotation.y = 0.4;
+                arifG.scale.setScalar(2.2);
+                arifLoaded = true;
+                tryReady();
+            }
+        );
+
+        // ── Load Ajeng (pink torchlight) ──
+        loader.load(
+            'ajeng.glb',
+            (gltf) => {
+                const { wrapper, baseScale } = setupGLBChar(gltf.scene, 0xff4d6d);
+                scene.add(wrapper);
+                ajeng = { group: wrapper, col: MAZE_W - 2, row: MAZE_H - 2, targetCol: MAZE_W - 2, targetRow: MAZE_H - 2, moving: false, baseScale: 1 };
+
+                // Menu position (floating right, larger scale for showcase)
+                wrapper.position.set(MX0 + 7, 0, MZ0);
+                wrapper.rotation.y = -0.4;
+                wrapper.scale.setScalar(2.2);  // 2.2× bigger than gameplay size
+
+                ajengLoaded = true;
+                tryReady();
+            },
+            undefined,
+            (err) => {
+                console.warn('ajeng.glb gagal dimuat, menggunakan karakter prosedural.', err);
+                const ajengG = makeChibiGirl(0xff4d6d);
+                scene.add(ajengG);
+                ajeng = { group: ajengG, col: MAZE_W - 2, row: MAZE_H - 2, targetCol: MAZE_W - 2, targetRow: MAZE_H - 2, moving: false, baseScale: 1 };
+                ajengG.position.set(MX0 + 7, 0, MZ0);
+                ajengG.rotation.y = -0.4;
+                ajengG.scale.setScalar(2.2);
+                ajengLoaded = true;
+                tryReady();
+            }
+        );
+    }
+
+    // ── Fallback procedural characters (used if GLB fails) ────
+    function lightenColor(hex, a) {
+        const r = Math.min(255, ((hex >> 16) & 0xff) + Math.round(a * 255));
+        const gv = Math.min(255, ((hex >> 8) & 0xff) + Math.round(a * 255));
+        const b = Math.min(255, (hex & 0xff) + Math.round(a * 255));
+        return (r << 16) | (gv << 8) | b;
+    }
+
+    // ── Fallback Arif: Space Explorer Astronaut ────────────────
     function makeChibiBoy(color) {
         const g = new THREE.Group();
 
@@ -637,19 +738,37 @@
     function updateCharPos(char, dt) {
         if (!char.moving) return;
         const tw = cellToWorld(char.targetCol, char.targetRow);
-        const dir = new THREE.Vector3().subVectors(tw, char.group.position);
-        const dist = dir.length();
+        const curPos = char.group.position;
+        const dx = tw.x - curPos.x;
+        const dz = tw.z - curPos.z;
+        const dist = Math.sqrt(dx * dx + dz * dz);
         const step = MOVE_SPD * CELL * dt;
+
         if (dist <= step) {
-            char.group.position.copy(tw);
+            char.group.position.x = tw.x;
+            char.group.position.z = tw.z;
             char.col = char.targetCol; char.row = char.targetRow; char.moving = false;
         } else {
-            dir.normalize().multiplyScalar(step);
-            char.group.position.add(dir);
+            const ratio = step / dist;
+            char.group.position.x += dx * ratio;
+            char.group.position.z += dz * ratio;
         }
+
+        // Smoother rotation + Leaning
         if (dist > 0.01) {
-            const angle = Math.atan2(tw.x - char.group.position.x, tw.z - char.group.position.z);
-            char.group.rotation.y += (angle - char.group.rotation.y) * 0.2;
+            const targetAngle = Math.atan2(dx, dz);
+            let diff = targetAngle - char.group.rotation.y;
+            while (diff < -Math.PI) diff += Math.PI * 2;
+            while (diff > Math.PI) diff -= Math.PI * 2;
+            char.group.rotation.y += diff * 0.28;
+
+            // Leaning forward (X rotation relative to movement)
+            const leanTarget = 0.22;
+            char.group.rotation.x += (leanTarget - char.group.rotation.x) * 0.15;
+            char.group.rotation.z = 0;
+        } else {
+            // Reset lean when stopping
+            char.group.rotation.x *= 0.8;
         }
     }
 
@@ -780,14 +899,156 @@
         }
     }
 
+    // =============================================
+    // SYNTH MUSIC (Futuristic Theme)
+    // =============================================
+    class SynthMusic {
+        constructor() {
+            this.ctx = null;
+            this.playing = false;
+            this.timer = 0;
+            this.bpm = 110;
+            this.step = 0;
+            this.notes = [36, 48, 36, 48, 43, 48, 36, 48]; // Basic techno bassline
+        }
+
+        start() {
+            if (this.playing) return;
+            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            this.playing = true;
+        }
+
+        update(dt) {
+            if (!this.playing || !this.ctx) return;
+            this.timer += dt;
+            const stepDur = 60 / this.bpm / 2; // 8th notes
+            if (this.timer >= stepDur) {
+                this.timer -= stepDur;
+                this.playNote(this.notes[this.step % this.notes.length]);
+                this.step++;
+            }
+        }
+
+        playNote(midi) {
+            const freq = Math.pow(2, (midi - 69) / 12) * 440;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+            gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + 0.4);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(this.ctx.currentTime + 0.4);
+
+            // Add a simple bleep for detail
+            if (this.step % 4 === 0) {
+                const osc2 = this.ctx.createOscillator();
+                const gain2 = this.ctx.createGain();
+                osc2.type = 'square';
+                osc2.frequency.setValueAtTime(freq * 2, this.ctx.currentTime);
+                gain2.gain.setValueAtTime(0.03, this.ctx.currentTime);
+                gain2.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + 0.1);
+                osc2.connect(gain2);
+                gain2.connect(this.ctx.destination);
+                osc2.start();
+                osc2.stop(this.ctx.currentTime + 0.1);
+            }
+        }
+    }
+
+    let menuSynth = new SynthMusic();
+
     function updateParticles(dt) {
         for (let i = particles.length - 1; i >= 0; i--) {
             const p = particles[i];
             p.life -= dt * 0.85;
             p.vel.y -= 9 * dt;
             p.mesh.position.addScaledVector(p.vel, dt);
-            p.mesh.material.opacity = Math.max(0, p.life);
+            if (p.mesh.material.opacity !== undefined) p.mesh.material.opacity = Math.max(0, p.life);
             if (p.life <= 0) { scene.remove(p.mesh); particles.splice(i, 1); }
+        }
+    }
+
+    // =============================================
+    // FUSION EFFECT (Electricity + Fire)
+    // =============================================
+    class FusionEffect {
+        constructor() {
+            this.active = false;
+            this.group = new THREE.Group();
+            scene.add(this.group);
+
+            // Core fire globe
+            const hg = new THREE.SphereGeometry(1.2, 16, 16);
+            const hm = new THREE.MeshBasicMaterial({ color: 0xff4400, transparent: true, opacity: 0.6 });
+            this.core = new THREE.Mesh(hg, hm);
+            this.group.add(this.core);
+
+            // Inner intense core
+            const hg2 = new THREE.SphereGeometry(0.6, 16, 16);
+            const hm2 = new THREE.MeshBasicMaterial({ color: 0xffff00, transparent: true, opacity: 0.9 });
+            this.innerCore = new THREE.Mesh(hg2, hm2);
+            this.group.add(this.innerCore);
+
+            // Electricity arcs (set of lines)
+            this.arcs = [];
+            const arcMat = new THREE.LineBasicMaterial({ color: 0x00ffff });
+            for (let i = 0; i < 5; i++) {
+                const geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
+                const line = new THREE.Line(geo, arcMat);
+                line.visible = false;
+                this.arcs.push(line);
+                this.group.add(line);
+            }
+
+            this.pulseTimer = 0;
+        }
+
+        update(pos, dt) {
+            if (!this.active) {
+                this.group.visible = false;
+                return;
+            }
+            this.group.visible = true;
+            this.group.position.copy(pos);
+            this.group.position.y += 1.5;
+
+            this.pulseTimer += dt;
+            const s = 1.0 + Math.sin(this.pulseTimer * 12) * 0.2;
+            this.core.scale.setScalar(s);
+            this.innerCore.scale.setScalar(s * 0.7);
+
+            // Update electricity arcs
+            this.arcs.forEach((arc, i) => {
+                if (Math.random() < 0.2) {
+                    arc.visible = true;
+                    const pts = [];
+                    const len = 2.0 + Math.random() * 2.5;
+                    for (let j = 0; j < 5; j++) {
+                        pts.push(new THREE.Vector3(
+                            (Math.random() - 0.5) * len,
+                            (Math.random() - 0.5) * len,
+                            (Math.random() - 0.5) * len
+                        ));
+                    }
+                    arc.geometry.setFromPoints(pts);
+                } else if (Math.random() < 0.3) {
+                    arc.visible = false;
+                }
+            });
+
+            // Occasional fusion sparks
+            if (Math.random() < 0.15) {
+                const spG = new THREE.SphereGeometry(0.12, 4, 4);
+                const spM = new THREE.MeshBasicMaterial({ color: Math.random() > 0.5 ? 0xffaa00 : 0x00ffff });
+                const sp = new THREE.Mesh(spG, spM);
+                sp.position.copy(this.group.position).add(new THREE.Vector3((Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2));
+                const vel = new THREE.Vector3((Math.random() - 0.5) * 5, Math.random() * 5, (Math.random() - 0.5) * 5);
+                particles.push({ mesh: sp, vel, life: 0.6 });
+                scene.add(sp);
+            }
         }
     }
 
@@ -893,21 +1154,36 @@
         base.addEventListener('lostpointercapture', resetKnob);
     }
 
+    function updateMobileUIToggle() {
+        const isMobile = window.innerWidth < 1024 || 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        const mobileEl = document.getElementById('mobile-controls');
+        if (mobileEl) {
+            if (isMobile && gameStarted) mobileEl.classList.remove('hidden');
+            else mobileEl.classList.add('hidden');
+        }
+    }
+
     function startGame() {
         if (gameStarted) return;
         gameStarted = true;
         document.getElementById('start-screen').classList.add('hidden');
-        // Show dpad on any small screen OR touch device (not just touch-only)
-        if (window.innerWidth < 1024 || 'ontouchstart' in window || navigator.maxTouchPoints > 0)
-            document.getElementById('mobile-controls').classList.remove('hidden');
 
-        // Move characters from floating menu positions to maze start positions
+        // Show HUD and Minimap
+        const h = document.getElementById('hud');
+        if (h) h.style.opacity = '1';
+        const m = document.getElementById('minimap');
+        if (m) m.style.opacity = '1';
+
+        updateMobileUIToggle();
+
+        // Gameplay Fog (Blinding fog removed, atmospheric haze restored)
+        if (scene.fog) scene.fog.density = 0.006;
         arif.group.position.copy(cellToWorld(1, 1));
         arif.group.rotation.set(0, 0, 0);
-        arif.group.scale.setScalar(1);  // restore normal scale
+        arif.group.scale.setScalar(arif.baseScale || 1);  // restore normal scale
         ajeng.group.position.copy(cellToWorld(MAZE_W - 2, MAZE_H - 2));
         ajeng.group.rotation.set(0, 0, 0);
-        ajeng.group.scale.setScalar(1);  // restore normal scale
+        ajeng.group.scale.setScalar(ajeng.baseScale || 1);  // restore normal scale
 
         // Reset camera tracking to maze center so it starts smoothly
         const cx = (MAZE_W - 1) * CELL / 2;
@@ -1019,8 +1295,8 @@
     function init() {
         scene = new THREE.Scene();
         scene.background = new THREE.Color(0x01000a);
-        // Very subtle atmospheric haze only — NOT blinding fog
-        scene.fog = new THREE.FogExp2(0x01000a, 0.006);
+        // Start with NO fog in menu for character visibility
+        scene.fog = new THREE.FogExp2(0x01000a, 0);
 
         setupCamera();
 
@@ -1039,6 +1315,8 @@
         const dl = new THREE.DirectionalLight(0xaaaaff, 1.1);
         dl.position.set(50, 80, 50);
         scene.add(dl);
+
+        fusionEffect = new FusionEffect();
         // Secondary fill light from opposite side
         const dl2 = new THREE.DirectionalLight(0x551188, 0.5);
         dl2.position.set(-30, 40, -30);
@@ -1048,27 +1326,12 @@
         buildScene();
         starField = createLoveStarField();
 
-        // Arif (boy, blue) — left side for menu
-        const arifG = makeChibiBoy(0x0088ff);
-        scene.add(arifG);
-        arif = { group: arifG, col: 1, row: 1, targetCol: 1, targetRow: 1, moving: false };
         const MX0 = (MAZE_W - 1) * CELL / 2, MZ0 = (MAZE_H - 1) * CELL / 2;
-        arifG.position.set(MX0 - 7, 0, MZ0);
-        arifG.rotation.y = 0.4;
-        arifG.scale.setScalar(2.2);  // bigger for menu showcase
 
-        // Ajeng (girl, pink) — right side for menu
-        const ajengG = makeChibiGirl(0xff4d6d);
-        scene.add(ajengG);
-        ajeng = { group: ajengG, col: MAZE_W - 2, row: MAZE_H - 2, targetCol: MAZE_W - 2, targetRow: MAZE_H - 2, moving: false };
-        ajengG.position.set(MX0 + 7, 0, MZ0);
-        ajengG.rotation.y = -0.4;
-        ajengG.scale.setScalar(2.2);  // bigger for menu showcase
-
-        // Perspective camera: closer, hero-angle looking at characters
-        menuCam = new THREE.PerspectiveCamera(62, window.innerWidth / window.innerHeight, 0.1, 800);
-        menuCam.position.set(MX0, 4, MZ0 + 14);
-        menuCam.lookAt(MX0, 3, MZ0);
+        // Perspective camera for menu
+        menuCam = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 800);
+        menuCam.position.set(MX0, 6, MZ0 + 22);
+        menuCam.lookAt(MX0, 5, MZ0);
         menuCam.updateProjectionMatrix();
 
         createFogOverlay();
@@ -1081,11 +1344,28 @@
             camera.left = -vw * aspect; camera.right = vw * aspect;
             camera.top = vw; camera.bottom = -vw;
             camera.updateProjectionMatrix();
-            if (menuCam) { menuCam.aspect = aspect; menuCam.updateProjectionMatrix(); }
+            if (menuCam) {
+                menuCam.aspect = aspect;
+                // Dynamically pull camera back on vertical screens
+                menuCam.position.z = aspect < 1 ? 32 : 22;
+                menuCam.updateProjectionMatrix();
+            }
             renderer.setSize(window.innerWidth, window.innerHeight);
+            updateMobileUIToggle();
         });
 
-        animate();
+        // Show loading hint while GLB files are being fetched
+        const startBtn = document.getElementById('start-button');
+        if (startBtn) { startBtn.disabled = true; startBtn.textContent = 'Memuat karakter...'; }
+
+        // Load GLB characters then start animation
+        loadCharacters(() => {
+            if (startBtn) { startBtn.disabled = false; startBtn.textContent = 'Mulai Petualangan '; }
+            animate();
+        });
+
+        // Render one frame with just the scene while waiting
+        renderer.render(scene, menuCam || camera);
     }
 
     // =============================================
@@ -1100,24 +1380,27 @@
         const t = now / 1000;
 
         if (gameStarted && !gameWon) {
-            // Key repeat
+            // Check for next move IF both characters are idle
             if (!arif.moving && !ajeng.moving) {
+                const held = getHeldDir();
                 if (moveQueue) {
                     tryMove(arif, moveQueue.dc, moveQueue.dr);
                     tryMove(ajeng, moveQueue.dc, moveQueue.dr);
                     moveQueue = null; keyHoldTimer = 0;
+                } else if (held) {
+                    // Start moving immediately if a key is held
+                    if (keyHoldTimer === 0 || keyHoldTimer >= KEY_REPEAT) {
+                        tryMove(arif, held.dc, held.dr);
+                        tryMove(ajeng, held.dc, held.dr);
+                        keyHoldTimer = (keyHoldTimer === 0) ? 0.001 : keyHoldTimer - KEY_REPEAT * 0.7;
+                    }
+                    keyHoldTimer += dt;
                 } else {
-                    const held = getHeldDir();
-                    if (held) {
-                        keyHoldTimer += dt;
-                        if (keyHoldTimer >= KEY_REPEAT) {
-                            tryMove(arif, held.dc, held.dr);
-                            tryMove(ajeng, held.dc, held.dr);
-                            keyHoldTimer -= KEY_REPEAT * 0.65;
-                        }
-                    } else keyHoldTimer = 0;
+                    keyHoldTimer = 0;
                 }
             }
+
+            // Update positions after handling input for zero-latency response
             updateCharPos(arif, dt);
             updateCharPos(ajeng, dt);
 
@@ -1134,34 +1417,47 @@
 
         // Character animation: float like astronauts in menu, gentle bob during gameplay
         if (!gameStarted) {
-            // ── Menu float: astronaut sinusoidal drift ──
+            const aspect = window.innerWidth / window.innerHeight;
             const MXm = (MAZE_W - 1) * CELL / 2, MZm = (MAZE_H - 1) * CELL / 2;
-            // Arif: left side
-            arif.group.position.set(
-                MXm - 7 + Math.sin(t * 0.28) * 0.4,
-                2.5 + Math.sin(t * 0.65) * 1.6,
-                MZm + Math.cos(t * 0.18) * 0.3
-            );
-            arif.group.rotation.set(
-                Math.sin(t * 0.35) * 0.14,
-                0.4 + Math.sin(t * 0.22) * 0.3,
-                Math.sin(t * 0.5) * 0.18
-            );
-            // Ajeng: right side, opposite phase
-            ajeng.group.position.set(
-                MXm + 7 + Math.sin(t * 0.28 + Math.PI) * 0.4,
-                2.5 + Math.sin(t * 0.65 + 1.3) * 1.6,
-                MZm + Math.cos(t * 0.18 + Math.PI) * 0.3
-            );
-            ajeng.group.rotation.set(
-                Math.sin(t * 0.35 + 0.8) * 0.14,
-                -0.4 - Math.sin(t * 0.22) * 0.3,
-                -Math.sin(t * 0.5) * 0.18
-            );
+
+            // Dynamic side offset: wider on desktop, narrower on mobile
+            const side = aspect < 1 ? 4 : 8;
+            const floatY = 6 + Math.sin(t * 1.5) * 0.8;
+            const zOffset = 10; // Closer to camera for better presence
+
+            arif.group.position.set(MXm - side, floatY, MZm + zOffset);
+            ajeng.group.position.set(MXm + side, floatY, MZm + zOffset);
+
+            arif.group.rotation.set(0.2, 0.5 + Math.sin(t * 0.5) * 0.2, 0);
+            ajeng.group.rotation.set(0.2, -0.5 - Math.sin(t * 0.5) * 0.2, 0);
+
+            // Music Trigger
+            const startBtn = document.getElementById('start-button');
+            if (startBtn && !startBtn.onclick_hooked) {
+                startBtn.onclick_hooked = true;
+                const originalOnClick = startBtn.onclick;
+                startBtn.onclick = () => {
+                    menuSynth.start();
+                    startGame();
+                };
+                startBtn.onmouseenter = () => menuSynth.start();
+            }
+            menuSynth.update(dt);
         } else {
-            // Gameplay bob
-            arif.group.position.y = Math.sin(t * 2.2) * 0.12;
-            ajeng.group.position.y = Math.sin(t * 2.2 + Math.PI) * 0.12;
+            // Gameplay Floating/Hovering (Sinusoidal Bob)
+            const hoverY = 0.5 + Math.sin(t * 3.5) * 0.25;
+            arif.group.position.y = hoverY;
+            ajeng.group.position.y = hoverY + Math.sin(t * 3.5 + 1.5) * 0.1;
+
+            // Fusion Trigger Check
+            const d = arif.group.position.distanceTo(ajeng.group.position);
+            if (d < 1.5 && fusionEffect) {
+                fusionEffect.active = true;
+                fusionEffect.update(arif.group.position.clone().lerp(ajeng.group.position, 0.5), dt);
+            } else if (fusionEffect) {
+                fusionEffect.active = false;
+                fusionEffect.update(null, dt);
+            }
         }
 
         // Torch pulse
