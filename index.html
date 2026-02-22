@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Arif & Ajeng: The Reunion</title>
+    <meta name="description" content="Labirin isometrik — gerakkan satu arah untuk membawa Arif & Ajeng bertemu!">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <!-- Three.js r128 global (no ES module / no CORS issue) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+
+<body>
+
+    <!-- 3D Canvas -->
+    <div id="game-container"></div>
+
+    <!-- UI -->
+    <div id="ui-layer">
+
+        <!-- ── Start Screen ── -->
+        <div id="start-screen" class="overlay">
+            <div class="glass-card">
+                <div class="heart-logo">💓</div>
+                <h1>Arif &amp; Ajeng</h1>
+                <p>Labirin cinta isometrik — satu tombol, dua hati.</p>
+
+                <div class="controls-hint">
+                    <div class="hint-row">
+                        <div class="char-badge blue">🔵 Arif</div>
+                        <div class="arrow-keys">
+                            <span class="key-cluster">
+                                <kbd class="key-sm">W</kbd><br>
+                                <kbd class="key-sm">A</kbd><kbd class="key-sm">S</kbd><kbd class="key-sm">D</kbd>
+                            </span>
+                            <span class="or-text">atau</span>
+                            <span class="key-cluster">
+                                <kbd class="key-sm">↑</kbd><br>
+                                <kbd class="key-sm">←</kbd><kbd class="key-sm">↓</kbd><kbd class="key-sm">→</kbd>
+                            </span>
+                        </div>
+                        <div class="char-badge pink">Ajeng 🔴</div>
+                    </div>
+                    <p class="hint-note">⚡ Kedua karakter bergerak BERSAMAAN!<br>Temukan jalur yang tepat agar mereka
+                        bertemu.</p>
+                </div>
+
+                <button id="start-button" class="btn-primary">Mulai Petualangan </button>
+            </div>
+        </div>
+
+        <!-- ── Win Screen ── -->
+        <div id="win-screen" class="overlay hidden">
+            <div class="glass-card win-card">
+                <div class="win-emoji"> 💞</div>
+                <h1 class="win-title">Bersatu Kembali!</h1>
+                <p>Cinta Arif &amp; Ajeng melampaui segala rintangan labirin.</p>
+                <div class="win-stats">
+                    <div class="stat-item"><span>⏱</span><strong id="win-time">00:00</strong></div>
+                </div>
+                <button id="restart-button" class="btn-secondary">Main Lagi 🔄</button>
+            </div>
+        </div>
+
+        <!-- ── HUD ── -->
+        <div id="hud">
+            <div id="timer-box"><span>⏱</span><span id="timer">00:00</span></div>
+            <div id="love-meter">
+                <div class="love-label">
+                    <span class="blue-dot">🔵</span>
+                    <span id="dist-label">- sel</span>
+                    <span class="pink-dot">🔴</span>
+                </div>
+                <div id="love-bar">
+                    <div id="love-bar-fill"></div><span class="heart-tip">❤️</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Minimap ── -->
+        <canvas id="minimap" width="150" height="150"></canvas>
+
+        <!-- ── Analog Joystick (mobile) ── -->
+        <div id="mobile-controls" class="hidden">
+            <div id="joystick-base">
+                <div id="joystick-ring"></div>
+                <div id="joystick-knob">
+                    <span class="knob-icon">❤️</span>
+                </div>
+                <!-- Direction hints -->
+                <span class="joy-hint joy-up">▲</span>
+                <span class="joy-hint joy-dn">▼</span>
+                <span class="joy-hint joy-lt">◀</span>
+                <span class="joy-hint joy-rt">▶</span>
+            </div>
+            <div class="joystick-label">Geser untuk bergerak</div>
+        </div>
+
+    </div>
+
+    <audio id="bg-music" loop preload="none">
+        <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
+    </audio>
+
+    <script src="game.js"></script>
+</body>
+
+</html>

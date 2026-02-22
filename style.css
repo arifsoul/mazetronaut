@@ -1,0 +1,592 @@
+:root {
+    --blue: #44bbff;
+    --blue-dark: #0066bb;
+    --pink: #ff69b4;
+    --pink-light: #ffb3d9;
+    --dark-bg: #01000d;
+    --glass: rgba(30, 5, 60, 0.55);
+    --glass-b: rgba(160, 80, 255, 0.25);
+    --shadow-p: rgba(200, 80, 255, 0.35);
+}
+
+/* ── Reset ── */
+*,
+*::before,
+*::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Outfit', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: var(--dark-bg);
+    color: #fff;
+}
+
+/* ── Canvas ── */
+#game-container {
+    position: absolute;
+    inset: 0;
+}
+
+/* ── UI Layer ── */
+#ui-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 10;
+}
+
+#ui-layer * {
+    pointer-events: auto;
+}
+
+/* ── Overlay ── */
+.overlay {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(20, 0, 50, 0.88) 0%, rgba(1, 0, 15, 0.92) 100%);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: opacity 0.45s, visibility 0.45s;
+}
+
+.hidden {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    visibility: hidden;
+}
+
+/* ── Glass Card ── */
+.glass-card {
+    background: linear-gradient(160deg, rgba(25, 3, 60, 0.75) 0%, rgba(5, 2, 25, 0.85) 100%);
+    border: 1px solid var(--glass-b);
+    padding: 2.4rem 2.6rem;
+    border-radius: 2rem;
+    text-align: center;
+    box-shadow: 0 0 0 1px rgba(180, 80, 255, 0.15), 0 10px 50px rgba(180, 40, 255, 0.3), 0 0 80px rgba(255, 100, 180, 0.1) inset;
+    max-width: 92%;
+    width: 460px;
+    animation: slideUp 0.5s ease;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(28px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.heart-logo {
+    font-size: 3.5rem;
+    margin-bottom: 0.4rem;
+    display: block;
+    animation: heartbeat 1.6s ease infinite;
+}
+
+@keyframes heartbeat {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.18);
+    }
+}
+
+h1 {
+    font-size: 2.7rem;
+    font-weight: 900;
+    background: linear-gradient(45deg, var(--pink), var(--blue));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.5rem;
+}
+
+p {
+    font-size: 1rem;
+    color: var(--pink-light);
+    line-height: 1.6;
+    margin-bottom: 1.4rem;
+}
+
+/* ── Controls Hint ── */
+.controls-hint {
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 1.2rem;
+    padding: 1.1rem 1rem;
+    margin-bottom: 1.8rem;
+}
+
+.hint-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    gap: 0.5rem;
+    margin-bottom: 0.9rem;
+}
+
+.char-badge {
+    font-weight: 700;
+    font-size: 0.95rem;
+    padding: 4px 10px;
+    border-radius: 2rem;
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.char-badge.blue {
+    color: var(--blue);
+    border: 1px solid var(--blue);
+}
+
+.char-badge.pink {
+    color: var(--pink);
+    border: 1px solid var(--pink);
+}
+
+.arrow-keys {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.key-cluster {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    line-height: 1;
+}
+
+.or-text {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 5px;
+    font-family: monospace;
+    font-size: 0.8rem;
+    min-width: 26px;
+    height: 24px;
+    padding: 0 4px;
+    margin: 1px;
+}
+
+.key-sm {
+    min-width: 22px;
+    height: 21px;
+    font-size: 0.72rem;
+}
+
+.hint-note {
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.55);
+    margin-bottom: 0;
+    line-height: 1.5;
+}
+
+/* ── Buttons ── */
+.btn-primary {
+    background: linear-gradient(135deg, var(--pink) 0%, #c0284a 100%);
+    color: #fff;
+    border: none;
+    padding: 0.9rem 2.2rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+    border-radius: 3rem;
+    cursor: pointer;
+    box-shadow: 0 4px 22px rgba(255, 77, 109, 0.45);
+    transition: transform .2s, box-shadow .2s;
+}
+
+.btn-primary:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 30px rgba(255, 77, 109, 0.65);
+}
+
+.btn-primary:active {
+    transform: scale(0.97);
+}
+
+.btn-secondary {
+    background: transparent;
+    border: 2px solid var(--pink);
+    color: var(--pink);
+    padding: 0.85rem 2.2rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+    border-radius: 3rem;
+    cursor: pointer;
+    margin-top: 0.5rem;
+    transition: background .2s, color .2s, transform .2s;
+}
+
+.btn-secondary:hover {
+    background: var(--pink);
+    color: #fff;
+    transform: scale(1.04);
+}
+
+.btn-secondary:active {
+    transform: scale(0.97);
+}
+
+/* ── Win Card ── */
+.win-card {
+    border-color: rgba(255, 77, 109, 0.4);
+}
+
+.win-emoji {
+    font-size: 4rem;
+    display: block;
+    margin-bottom: 0.4rem;
+    animation: winSpin 2s ease-in-out infinite alternate;
+}
+
+@keyframes winSpin {
+    from {
+        transform: rotate(-12deg) scale(1);
+    }
+
+    to {
+        transform: rotate(12deg) scale(1.12);
+    }
+}
+
+.win-title {
+    animation: pulse 1.8s ease infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: .85;
+        transform: scale(1.07);
+    }
+}
+
+.win-stats {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin: 0.8rem 0 1.4rem;
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1rem;
+    color: var(--pink-light);
+}
+
+.stat-item strong {
+    color: #fff;
+    font-size: 1.5rem;
+}
+
+/* ── HUD ── */
+#hud {
+    position: absolute;
+    top: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.45rem;
+    pointer-events: none;
+    z-index: 20;
+    min-width: 220px;
+}
+
+#timer-box {
+    background: var(--glass);
+    border: 1px solid var(--glass-b);
+    backdrop-filter: blur(6px);
+    padding: .35rem 1.1rem;
+    border-radius: 2rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+}
+
+#love-meter {
+    background: var(--glass);
+    border: 1px solid var(--glass-b);
+    backdrop-filter: blur(6px);
+    padding: .45rem .9rem;
+    border-radius: 1.2rem;
+    width: 250px;
+}
+
+.love-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: .78rem;
+    margin-bottom: .3rem;
+    color: rgba(255, 255, 255, .7);
+}
+
+.blue-dot {
+    color: var(--blue);
+    font-size: .9rem;
+}
+
+.pink-dot {
+    color: var(--pink);
+    font-size: .9rem;
+}
+
+#love-bar {
+    background: rgba(255, 255, 255, .1);
+    border-radius: 1rem;
+    height: 9px;
+    overflow: hidden;
+    position: relative;
+}
+
+#love-bar-fill {
+    height: 100%;
+    width: 5%;
+    border-radius: 1rem;
+    background: linear-gradient(90deg, var(--blue), var(--pink));
+    box-shadow: 0 0 8px var(--pink);
+    transition: width .35s ease;
+}
+
+.heart-tip {
+    position: absolute;
+    right: -2px;
+    top: -9px;
+    font-size: .85rem;
+    pointer-events: none;
+}
+
+/* ── Minimap ── */
+#minimap {
+    position: absolute;
+    top: .9rem;
+    right: .9rem;
+    width: 120px;
+    height: 120px;
+    z-index: 20;
+    pointer-events: none;
+    border: 1px solid rgba(255, 255, 255, .18);
+    border-radius: .7rem;
+    background: rgba(8, 2, 20, .75);
+    backdrop-filter: blur(4px);
+    image-rendering: pixelated;
+}
+
+/* ── Analog Joystick (mobile) ── */
+#mobile-controls {
+    position: absolute;
+    bottom: 1.6rem;
+    right: 1.6rem;
+    /* corner — won't cover maze centre */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .35rem;
+    pointer-events: none;
+    z-index: 30;
+}
+
+#mobile-controls.hidden {
+    display: none !important;
+}
+
+/* Joystick outer base ring */
+#joystick-base {
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    background: rgba(8, 0, 25, 0.60);
+    border: 2px solid rgba(255, 105, 180, 0.45);
+    box-shadow: 0 0 22px rgba(255, 105, 180, .25),
+        inset 0 0 18px rgba(0, 0, 0, .5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    position: relative;
+    pointer-events: auto;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    transition: border-color .8s;
+}
+
+/* Inner guide ring */
+#joystick-ring {
+    position: absolute;
+    inset: 18px;
+    border-radius: 50%;
+    border: 1px dashed rgba(255, 255, 255, .12);
+    pointer-events: none;
+}
+
+/* Draggable knob */
+#joystick-knob {
+    position: absolute;
+    width: 52px;
+    height: 52px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%,
+            rgba(255, 160, 200, 1) 0%,
+            rgba(220, 50, 120, 1) 55%,
+            rgba(100, 0, 50, 1) 100%);
+    box-shadow: 0 0 16px rgba(255, 105, 180, .65),
+        0 2px 6px rgba(0, 0, 0, .6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    transition: box-shadow .15s;
+    will-change: transform;
+}
+
+#joystick-knob.active {
+    box-shadow: 0 0 26px rgba(255, 105, 180, .95),
+        0 2px 6px rgba(0, 0, 0, .6);
+}
+
+.knob-icon {
+    font-size: .9rem;
+    line-height: 1;
+    pointer-events: none;
+}
+
+/* Arrow direction hints at edges */
+.joy-hint {
+    position: absolute;
+    font-size: .7rem;
+    color: rgba(255, 255, 255, .3);
+    pointer-events: none;
+    line-height: 1;
+}
+
+.joy-up {
+    top: 5px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.joy-dn {
+    bottom: 5px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.joy-lt {
+    left: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.joy-rt {
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.joystick-label {
+    font-size: .7rem;
+    color: rgba(255, 255, 255, .35);
+    text-align: center;
+    letter-spacing: .04em;
+    text-shadow: 0 0 6px var(--pink);
+    pointer-events: none;
+}
+
+/* ── CSS Transition on theme vars ── */
+:root {
+    transition: --pink 3s, --blue 3s;
+}
+
+/* ── Desktop: hide joystick ── */
+@media (min-width:1024px) {
+    #mobile-controls {
+        display: none !important;
+    }
+}
+
+/* ── Pointer-coarse always show ── */
+@media (pointer: coarse) {
+    #mobile-controls:not(.hidden) {
+        display: flex !important;
+    }
+}
+
+/* ── Small screens ── */
+@media (max-width:540px) {
+    .glass-card {
+        padding: 1.4rem 1.1rem;
+    }
+
+    h1 {
+        font-size: 1.9rem;
+    }
+
+    #minimap {
+        width: 80px;
+        height: 80px;
+        top: .6rem;
+        right: .6rem;
+    }
+
+    #love-meter {
+        width: 190px;
+    }
+
+    #mobile-controls {
+        bottom: 1rem;
+        right: 1rem;
+    }
+
+    #joystick-base {
+        width: 110px;
+        height: 110px;
+    }
+
+    #joystick-knob {
+        width: 44px;
+        height: 44px;
+    }
+}
