@@ -63,22 +63,15 @@ function addNebulaPlanes() {
     const MX = MAZE_W * CELL;
     const MZ = MAZE_H * CELL;
     nebulaColors.forEach((c, i) => {
-        const geo = new THREE.PlaneGeometry(MX * 1.6, MZ * 1.6);
+        const geo = new THREE.PlaneGeometry(MX * 2.5, MZ * 2.5);
         const mat = new THREE.MeshBasicMaterial({
-            color: c, transparent: true, opacity: 0.07 + Math.random() * 0.07,
+            color: c, transparent: true, opacity: 0.12,
             side: THREE.DoubleSide, depthWrite: false
         });
         const pl = new THREE.Mesh(geo, mat);
-        pl.position.set(
-            MX / 2 + (Math.random() - 0.5) * MX * 0.5,
-            35 + i * 12,
-            MZ / 2 + (Math.random() - 0.5) * MZ * 0.5
-        );
-        pl.rotation.set(
-            (Math.random() - 0.5) * 0.5,
-            Math.random() * Math.PI,
-            (Math.random() - 0.5) * 0.5
-        );
+        // Positioned as distant "walls" or backdrop sheets
+        pl.position.set(MX / 2, 20 + i * 15, MZ / 2);
+        pl.rotation.x = Math.PI / 2; // Lay flat above
         scene.add(pl);
     });
 }
@@ -86,13 +79,11 @@ function addNebulaPlanes() {
 function createAsteroids() {
     const MX = (MAZE_W * CELL) / 2;
     const MZ = (MAZE_H * CELL) / 2;
+    const beltRadius = Math.max(MX, MZ) + 30;
 
-    for (let i = 0; i < 25; i++) {
-        const size = 1 + Math.random() * 3;
-        // Dodecahedron makes for cool low-poly space rocks
+    for (let i = 0; i < 40; i++) {
+        const size = 1.2 + Math.random() * 4;
         const geo = new THREE.DodecahedronGeometry(size, 0);
-
-        // Randomly distort vertices for irregular shape
         const posAttr = geo.attributes.position;
         for (let j = 0; j < posAttr.count; j++) {
             posAttr.setX(j, posAttr.getX(j) * (0.8 + Math.random() * 0.4));
@@ -102,27 +93,26 @@ function createAsteroids() {
         geo.computeVertexNormals();
 
         const mat = new THREE.MeshStandardMaterial({
-            color: 0x334466,
-            roughness: 0.8,
-            metalness: 0.1,
+            color: 0x222233,
+            roughness: 0.9,
+            metalness: 0.2,
             flatShading: true
         });
 
         const mesh = new THREE.Mesh(geo, mat);
         scene.add(mesh);
 
-        // Orbit properties
-        const radius = Math.max(MX, MZ) + 10 + Math.random() * 40;
-        const angle = Math.random() * Math.PI * 2;
-        const speed = (0.05 + Math.random() * 0.15) * (Math.random() > 0.5 ? 1 : -1);
-        const yPos = 5 + (Math.random() - 0.5) * 40;
+        // Circular Belt distribution
+        const angle = (i / 40) * Math.PI * 2;
+        const dist = beltRadius + (Math.random() - 0.5) * 20;
+        const yPos = 5 + (Math.random() - 0.5) * 30;
 
         asteroids.push({
             mesh,
-            radius,
-            angle,
-            speed,
-            rotSpeed: new THREE.Vector3(Math.random() * 0.02, Math.random() * 0.02, Math.random() * 0.02),
+            radius: dist,
+            angle: angle,
+            speed: (0.02 + Math.random() * 0.08),
+            rotSpeed: new THREE.Vector3(Math.random() * 0.015, Math.random() * 0.015, Math.random() * 0.015),
             centerX: MX,
             centerZ: MZ,
             yPos
@@ -407,3 +397,86 @@ function updateMeteors(dt) {
     }
 }
 
+
+// ── Character Trail System ──────────────────────────────
+let trails = [];
+
+class CharacterTrail {
+    constructor(char, color, isPink = false) {
+        this.char = char;
+        this.color = color;
+        this.isPink = isPink;
+        this.segments = [];
+        this.maxSegments = 40;
+        this.lastPos = new THREE.Vector3();
+    }
+
+    update(dt) {
+        if (!this.char || !this.char.group) return;
+
+        const pos = this.char.group.position.clone();
+        pos.y += 1.2; // Spawn from body center
+
+        if (this.char.moving) {
+            if (this.lastPos.distanceTo(pos) > 0.4) {
+                this.spawnSegment(pos);
+                this.lastPos.copy(pos);
+            }
+        }
+
+        for (let i = this.segments.length - 1; i >= 0; i--) {
+            const s = this.segments[i];
+            s.life -= dt;
+            s.mesh.material.opacity = (s.life / s.maxLife) * 0.6;
+            s.mesh.scale.multiplyScalar(0.98);
+            if (s.life <= 0) {
+                scene.remove(s.mesh);
+                this.segments.splice(i, 1);
+            }
+        }
+    }
+
+    spawnSegment(pos) {
+        const geo = this.isPink ? new THREE.SphereGeometry(0.3, 8, 8) : new THREE.BoxGeometry(0.2, 0.2, 0.2);
+        const mat = new THREE.MeshBasicMaterial({
+            color: this.color,
+            transparent: true,
+            opacity: 0.6,
+            blending: THREE.AdditiveBlending
+        });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.copy(pos);
+        scene.add(mesh);
+
+        this.segments.push({ mesh, life: 0.8, maxLife: 0.8 });
+
+        // Extra "ove" spark for Ajeng
+        if (this.isPink && Math.random() > 0.6) {
+            spawnHeartSpark(pos);
+        }
+    }
+}
+
+function spawnHeartSpark(pos) {
+    const geo = new THREE.PlaneGeometry(0.4, 0.4);
+    const mat = new THREE.MeshBasicMaterial({
+        color: 0xffb6c1,
+        transparent: true,
+        opacity: 0.8,
+        blending: THREE.AdditiveBlending
+    });
+    const p = new THREE.Mesh(geo, mat);
+    p.position.copy(pos).add(new THREE.Vector3((Math.random() - 0.5), (Math.random() - 0.5), (Math.random() - 0.5)));
+    p.lookAt(camera.position);
+    scene.add(p);
+    particles.push({ mesh: p, vel: new THREE.Vector3(0, 2, 0), life: 1.0, isThrust: false });
+}
+
+function initTrails() {
+    if (arif) trails.push(new CharacterTrail(arif, 0x87CEFA, false));
+    if (ajeng) trails.push(new CharacterTrail(ajeng, 0xFFB6C1, true));
+}
+
+function updateCharTrails(dt) {
+    trails.forEach(t => t.update(dt));
+}

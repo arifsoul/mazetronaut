@@ -15,7 +15,7 @@ function loadCharacters(onReady) {
     const MX0 = (MAZE_W - 1) * CELL / 2, MZ0 = (MAZE_H - 1) * CELL / 2;
 
     let arifLoaded = false, ajengLoaded = false;
-    const tryReady = () => { if (arifLoaded && ajengLoaded) onReady(); };
+    const tryReady = () => { if (arifLoaded && ajengLoaded) { initTrails(); onReady(); } };
 
     function setupGLBChar(gltfScene, torchColor) {
         // Wrapper group – position/rotation/scale controlled by game
@@ -38,8 +38,13 @@ function loadCharacters(onReady) {
 
         wrapper.add(gltfScene);
 
-        // Torchlight on wrapper (will move with wrapper)
+        // Torchlight on wrapper
         addLight(wrapper, torchColor, 4.5, LIGHT_RANGE, 0, 2.3, 0);
+
+        // --- Head Glint ---
+        const glint = new THREE.PointLight(torchColor, 1.5, 4);
+        glint.position.set(0, 2.3, 0.5);
+        wrapper.add(glint);
 
         // Enable shadows
         gltfScene.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = false; } });
@@ -51,7 +56,7 @@ function loadCharacters(onReady) {
     loader.load(
         'arif.glb',
         (gltf) => {
-            const { wrapper, baseScale } = setupGLBChar(gltf.scene, 0x0088ff);
+            const { wrapper, baseScale } = setupGLBChar(gltf.scene, 0x87CEFA);
             scene.add(wrapper);
             arif = { group: wrapper, col: 1, row: 1, targetCol: 1, targetRow: 1, moving: false, baseScale: 1 };
 
@@ -66,7 +71,7 @@ function loadCharacters(onReady) {
         undefined,
         (err) => {
             console.warn('arif.glb gagal dimuat, menggunakan karakter prosedural.', err);
-            const arifG = makeChibiBoy(0x0088ff);
+            const arifG = makeChibiBoy(0x87CEFA);
             scene.add(arifG);
             arif = { group: arifG, col: 1, row: 1, targetCol: 1, targetRow: 1, moving: false, baseScale: 1 };
             arifG.position.set(MX0 - 7, 0, MZ0);
@@ -81,7 +86,7 @@ function loadCharacters(onReady) {
     loader.load(
         'ajeng.glb',
         (gltf) => {
-            const { wrapper, baseScale } = setupGLBChar(gltf.scene, 0xff4d6d);
+            const { wrapper, baseScale } = setupGLBChar(gltf.scene, 0xFFB6C1);
             scene.add(wrapper);
             ajeng = { group: wrapper, col: MAZE_W - 2, row: MAZE_H - 2, targetCol: MAZE_W - 2, targetRow: MAZE_H - 2, moving: false, baseScale: 1 };
 
@@ -96,7 +101,7 @@ function loadCharacters(onReady) {
         undefined,
         (err) => {
             console.warn('ajeng.glb gagal dimuat, menggunakan karakter prosedural.', err);
-            const ajengG = makeChibiGirl(0xff4d6d);
+            const ajengG = makeChibiGirl(0xFFB6C1);
             scene.add(ajengG);
             ajeng = { group: ajengG, col: MAZE_W - 2, row: MAZE_H - 2, targetCol: MAZE_W - 2, targetRow: MAZE_H - 2, moving: false, baseScale: 1 };
             ajengG.position.set(MX0 + 7, 0, MZ0);
@@ -204,6 +209,7 @@ function makeChibiBoy(color) {
 
     // Torchlight
     addLight(g, color, 4.5, LIGHT_RANGE, 0, 2.3, 0);
+
     return g;
 }
 
@@ -389,11 +395,11 @@ function updateCharPos(char, dt) {
         char.group.rotation.y += diff * 0.28;
 
         // Leaning forward (X rotation relative to movement)
-        const leanTarget = 0.22;
+        const leanTarget = 0.45;
         char.group.rotation.x += (leanTarget - char.group.rotation.x) * 0.15;
         char.group.rotation.z = 0;
     } else {
         // Reset lean when stopping
-        char.group.rotation.x *= 0.8;
+        char.group.rotation.x += (0 - char.group.rotation.x) * 0.15;
     }
 }

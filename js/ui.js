@@ -138,10 +138,31 @@ function checkWin() {
             gameWon = true;
             clearInterval(timerID);
             spawnParticles(wE.clone().add(new THREE.Vector3(0, 1.5, 0)));
+
+            // Score calculation
+            const timeBonus = Math.max(0, (600 - elapsedSec) * 10);
+            const livesBonus = lives * 500;
+            const score = timeBonus + livesBonus + (questsAnswered * 200);
+
+            let rank = 'C';
+            if (score > 6000) rank = 'S';
+            else if (score > 4500) rank = 'A';
+            else if (score > 3000) rank = 'B';
+
             setTimeout(() => {
                 document.getElementById('win-screen').classList.remove('hidden');
                 const wt = document.getElementById('win-time');
                 if (wt) wt.textContent = formatTime(elapsedSec);
+
+                // Add Score & Rank to Win Screen
+                const stats = document.querySelector('.win-stats');
+                if (stats) {
+                    stats.innerHTML += `
+                        <div class="stat-item"><i data-lucide="award"></i> <strong>Rank: ${rank}</strong></div>
+                        <div class="stat-item"><i data-lucide="star"></i> <strong>Score: ${score}</strong></div>
+                    `;
+                    if (window.lucide) lucide.createIcons();
+                }
             }, 900);
         }
     }

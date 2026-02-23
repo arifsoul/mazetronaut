@@ -103,6 +103,9 @@
                 <div id="chat-text">Halo!</div>
             </div>
         </div>
+        <div id="glitch-overlay"
+            style="display:none; position:fixed; inset:0; background:rgba(255,0,0,0.2); z-index:99; pointer-events:none; mix-blend-mode: overlay; animation: glitchAnim 0.2s infinite;">
+        </div>
 
         <!-- ── Quest Modal ── -->
         <div id="quest-modal" class="hidden">
@@ -151,6 +154,8 @@
     <script src="js/ui.js"></script>
     <script src="js/quests.js"></script>
     <script src="js/chat.js"></script>
+    <script src="js/powerups.js"></script>
+    <script src="js/hazards.js"></script>
     <script src="game.js"></script>
     <script>
         // Initial setup for Lucide icons

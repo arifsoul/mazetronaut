@@ -33,10 +33,10 @@ let camTarget = null;
 let menuCam = null;
 
 const THEMES = [
-    { fog: [1, 0, 10], amb: [42, 16, 85], pink: [255, 105, 180], blue: [68, 187, 255], name: 'cosmic' },
-    { fog: [0, 5, 18], amb: [0, 20, 90], pink: [0, 191, 255], blue: [148, 0, 255], name: 'nebula' },
-    { fog: [10, 0, 5], amb: [80, 10, 30], pink: [255, 90, 90], blue: [255, 150, 0], name: 'solar' },
-    { fog: [0, 10, 10], amb: [0, 55, 55], pink: [0, 255, 180], blue: [80, 200, 255], name: 'aurora' },
+    { fog: [12, 12, 15], amb: [40, 40, 60], pink: [255, 105, 180], blue: [68, 187, 255], name: 'monochrome-1' },
+    { fog: [25, 25, 30], amb: [30, 30, 50], pink: [0, 191, 255], blue: [148, 0, 255], name: 'monochrome-2' },
+    { fog: [8, 8, 12], amb: [50, 50, 70], pink: [255, 90, 90], blue: [255, 150, 0], name: 'monochrome-3' },
+    { fog: [20, 20, 25], amb: [45, 45, 65], pink: [0, 255, 180], blue: [80, 200, 255], name: 'monochrome-4' },
 ];
 let themeIdx = 0, themeNext = 1, themeT = 0, themeTimer = 0;
 const THEME_DUR = 12;
@@ -91,14 +91,14 @@ function drawFogOverlay() {
     if (!gameStarted) return;
     const W = fogOverlay.width, H = fogOverlay.height;
     fogCtx.clearRect(0, 0, W, H);
-    fogCtx.fillStyle = fogOverlay.dataset.fogColor || 'rgba(1,0,10,0.88)';
+    fogCtx.fillStyle = fogOverlay.dataset.fogColor || 'rgba(15,15,18,0.74)';
     fogCtx.fillRect(0, 0, W, H);
 
-    const torchR = Math.min(W, H) * 0.32;
+    const torchR = (Math.min(W, H) * 0.32) * (window.isSuperTorch ? 1.8 : 1.0);
     const HALF_ANGLE = Math.PI / 4;
     const chars = [
-        { group: arif.group, color: '68, 187, 255', visible: true },
-        { group: ajeng.group, color: '255, 105, 180', visible: !fusionComplete }
+        { group: arif.group, color: '135, 206, 250', visible: true },
+        { group: ajeng.group, color: '255, 182, 193', visible: !fusionComplete }
     ];
 
     fogCtx.globalCompositeOperation = 'destination-out';
@@ -109,8 +109,9 @@ function drawFogOverlay() {
         const angle = getCharScreenAngle(group);
         const grad = fogCtx.createRadialGradient(sc.x, sc.y, 0, sc.x, sc.y, torchR);
         grad.addColorStop(0, 'rgba(255,255,255,1)');
-        grad.addColorStop(0.35, 'rgba(255,255,255,0.92)');
-        grad.addColorStop(1, 'rgba(255,255,1,0)');
+        grad.addColorStop(0.2, 'rgba(255,255,255,0.98)');
+        grad.addColorStop(0.5, `rgba(${color}, 0.6)`);
+        grad.addColorStop(1, 'rgba(0,0,0,0)');
         fogCtx.fillStyle = grad;
         fogCtx.beginPath();
         fogCtx.moveTo(sc.x, sc.y);
@@ -129,6 +130,16 @@ function drawFogOverlay() {
         fogCtx.fillStyle = ambGrad;
         fogCtx.beginPath();
         fogCtx.arc(sc.x, sc.y, ambR, 0, Math.PI * 2);
+        fogCtx.fill();
+
+        // Neutral core to punch through fog tint (white center)
+        const coreR = ambR * 0.4;
+        const coreGrad = fogCtx.createRadialGradient(sc.x, sc.y, 0, sc.x, sc.y, coreR);
+        coreGrad.addColorStop(0, 'rgba(255,255,255,0.92)');
+        coreGrad.addColorStop(1, 'rgba(255,255,255,0)');
+        fogCtx.fillStyle = coreGrad;
+        fogCtx.beginPath();
+        fogCtx.arc(sc.x, sc.y, coreR, 0, Math.PI * 2);
         fogCtx.fill();
     });
     fogCtx.globalCompositeOperation = 'source-over';
@@ -160,7 +171,7 @@ function updateColorTheme(dt) {
     const root = document.documentElement.style;
     root.setProperty('--pink', arrToCSS(curPink));
     root.setProperty('--blue', arrToCSS(curBlue));
-    if (fogCtx) fogOverlay.dataset.fogColor = `rgba(${Math.round(curFog[0])},${Math.round(curFog[1])},${Math.round(curFog[2])},0.82)`;
+    if (fogCtx) fogOverlay.dataset.fogColor = `rgba(${Math.round(curFog[0])},${Math.round(curFog[1])},${Math.round(curFog[2])},0.76)`;
 }
 
 function startGame() {
@@ -194,6 +205,8 @@ function startGame() {
     if (music) music.play().catch(() => { });
 
     placeQuestNodes();
+    spawnPowerUps();
+    spawnHazards();
     updateLives();
     updateQuestStatus();
 }
@@ -212,14 +225,14 @@ function init() {
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     document.getElementById('game-container').appendChild(renderer.domElement);
 
-    ambLight = new THREE.AmbientLight(0x2a1055, 1.8);
+    ambLight = new THREE.AmbientLight(0x2a1055, 2.8);
     scene.add(ambLight);
-    const dl = new THREE.DirectionalLight(0xaaaaff, 1.1);
+    const dl = new THREE.DirectionalLight(0xaaaaff, 1.4);
     dl.position.set(50, 80, 50);
     scene.add(dl);
 
     fusionEffect = new FusionEffect();
-    const dl2 = new THREE.DirectionalLight(0x551188, 0.5);
+    const dl2 = new THREE.DirectionalLight(0x551188, 0.7);
     dl2.position.set(-30, 40, -30);
     scene.add(dl2);
 
@@ -227,6 +240,23 @@ function init() {
     buildScene();
     createLoveStarField();
     createAsteroids();
+
+    // --- Maze Floor (Grid) ---
+    const floorGeo = new THREE.PlaneGeometry(MAZE_W * CELL, MAZE_H * CELL);
+    const floorMat = new THREE.MeshStandardMaterial({
+        color: 0x01000a,
+        roughness: 0.1,
+        metalness: 0.9,
+    });
+    const floor = new THREE.Mesh(floorGeo, floorMat);
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.set((MAZE_W - 1) * CELL / 2, -0.05, (MAZE_H - 1) * CELL / 2);
+    scene.add(floor);
+
+    // Grid lines for professional depth
+    const grid = new THREE.GridHelper(Math.max(MAZE_W, MAZE_H) * CELL, Math.max(MAZE_W, MAZE_H), 0x220044, 0x110022);
+    grid.position.set((MAZE_W - 1) * CELL / 2, 0.05, (MAZE_H - 1) * CELL / 2);
+    scene.add(grid);
 
     const MX0 = (MAZE_W - 1) * CELL / 2, MZ0 = (MAZE_H - 1) * CELL / 2;
     menuCam = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 800);
@@ -276,9 +306,20 @@ function animate() {
     prevT = now;
     const t = now / 1000;
 
+    // --- Screen Shake Offset ---
+    let shakeX = 0, shakeY = 0;
+    if (window.isShaking) {
+        shakeX = (Math.random() - 0.5) * 1.5;
+        shakeY = (Math.random() - 0.5) * 1.5;
+    }
+
     if (gameStarted && !gameWon) {
         if (!questPaused) {
+            updateHazards(dt);
+            updatePowerUps(dt, t);
+            updateCharTrails(dt);
             if (!arif.moving && !ajeng.moving) {
+                // ... (existing move logic)
                 const held = getHeldDir();
                 if (moveQueue) {
                     tryMove(arif, moveQueue.dc, moveQueue.dr);
@@ -292,6 +333,11 @@ function animate() {
             updateCharPos(arif, dt);
             updateCharPos(ajeng, dt);
             updateCameraTracking(dt);
+
+            // Apply shake to camera
+            camera.position.x += shakeX;
+            camera.position.z += shakeY;
+
             checkWin();
             updateHUD();
             drawMinimap();
