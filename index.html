@@ -7,11 +7,14 @@
     <title>Arif & Ajeng: The Reunion</title>
     <meta name="description" content="Labirin isometrik — gerakkan satu arah untuk membawa Arif & Ajeng bertemu!">
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="quest-system.css">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&display=swap" rel="stylesheet">
     <!-- Three.js r128 global (no ES module / no CORS issue) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <!-- GLTFLoader for loading .glb character models -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 
 <body>
@@ -38,21 +41,6 @@
                             INITIATE MISSION
                         </button>
                     </div>
-
-                    <div class="controls-grid">
-                        <div class="ctrl-box arif">
-                            <span class="label">UNIT: ARIF</span>
-                            <div class="keys">WASD / ARROWS</div>
-                        </div>
-                        <div class="ctrl-box sync">
-                            <div class="sync-icon">⚡</div>
-                            <span class="unit-desc">SYNC MOVEMENT ACTIVE</span>
-                        </div>
-                        <div class="ctrl-box ajeng">
-                            <span class="label">UNIT: AJENG</span>
-                            <div class="keys">WASD / ARROWS</div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -60,27 +48,30 @@
         <!-- ── Win Screen ── -->
         <div id="win-screen" class="overlay hidden">
             <div class="glass-card win-card">
-                <div class="win-emoji"> 💞</div>
+                <div class="win-emoji"><i data-lucide="party-popper"></i></div>
                 <h1 class="win-title">Bersatu Kembali!</h1>
                 <p>Cinta Arif &amp; Ajeng melampaui segala rintangan labirin.</p>
                 <div class="win-stats">
-                    <div class="stat-item"><span>⏱</span><strong id="win-time">00:00</strong></div>
+                    <div class="stat-item"><i data-lucide="timer"></i> <strong id="win-time">00:00</strong></div>
                 </div>
-                <button id="restart-button" class="btn-secondary">Main Lagi 🔄</button>
+                <button id="restart-button" class="btn-secondary">Main Lagi</button>
             </div>
         </div>
 
         <!-- ── HUD ── -->
         <div id="hud">
-            <div id="timer-box"><span>⏱</span><span id="timer">00:00</span></div>
+            <div id="timer-box"><i data-lucide="timer"></i> <span id="timer">00:00</span></div>
+            <div id="hud-meta">
+                <span id="lives-display"></span>
+                <span id="quest-status"></span>
+            </div>
             <div id="love-meter">
                 <div class="love-label">
                     <span class="blue-dot">🔵</span>
-                    <span id="dist-label">- sel</span>
-                    <span class="pink-dot">🔴</span>
+                    <span class="pink-dot">🩷</span>
                 </div>
                 <div id="love-bar">
-                    <div id="love-bar-fill"></div><span class="heart-tip">❤️</span>
+                    <div id="love-bar-fill"></div><i data-lucide="heart" class="heart-tip"></i>
                 </div>
             </div>
         </div>
@@ -93,24 +84,78 @@
             <div id="joystick-base">
                 <div id="joystick-ring"></div>
                 <div id="joystick-knob">
-                    <span class="knob-icon">❤️</span>
+                    <i data-lucide="heart" class="knob-icon"></i>
                 </div>
                 <!-- Direction hints -->
-                <span class="joy-hint joy-up">▲</span>
-                <span class="joy-hint joy-dn">▼</span>
-                <span class="joy-hint joy-lt">◀</span>
-                <span class="joy-hint joy-rt">▶</span>
+                <span class="joy-hint joy-up"><i data-lucide="chevron-up"></i></span>
+                <span class="joy-hint joy-dn"><i data-lucide="chevron-down"></i></span>
+                <span class="joy-hint joy-lt"><i data-lucide="chevron-left"></i></span>
+                <span class="joy-hint joy-rt"><i data-lucide="chevron-right"></i></span>
             </div>
             <div class="joystick-label">Geser untuk bergerak</div>
+        </div>
+
+        <!-- ── In-Game Tutorial Chat ── -->
+        <div id="tutorial-chat" class="hidden">
+            <img id="chat-avatar" src="arif.png" alt="Avatar">
+            <div id="chat-bubble">
+                <div id="chat-name">Arif</div>
+                <div id="chat-text">Halo!</div>
+            </div>
+        </div>
+
+        <!-- ── Quest Modal ── -->
+        <div id="quest-modal" class="hidden">
+            <div id="quest-card">
+                <div id="quest-header">
+                    <img id="quest-portrait" src="" alt="Character" />
+                    <div id="quest-header-text">
+                        <div id="quest-who"></div>
+                        <div id="quest-subtitle">PERTANYAAN QUEST</div>
+                    </div>
+                </div>
+                <div id="quest-question"></div>
+                <div id="quest-answers">
+                    <button class="quest-btn" id="qa-0" onclick="window._answerQuest(0)"></button>
+                    <button class="quest-btn" id="qa-1" onclick="window._answerQuest(1)"></button>
+                    <button class="quest-btn" id="qa-2" onclick="window._answerQuest(2)"></button>
+                    <button class="quest-btn" id="qa-3" onclick="window._answerQuest(3)"></button>
+                </div>
+                <div id="quest-feedback"></div>
+            </div>
+        </div>
+
+        <!-- ── Game Over Screen ── -->
+        <div id="game-over-screen" class="hidden overlay">
+            <div class="menu-card" id="gameover-card">
+                <div id="gameover-title">Game Over</div>
+                <div id="gameover-message">Nyawa habis! Arif &amp; Ajeng membutuhkan lebih banyak latihan...</div>
+                <div id="gameover-time"></div>
+                <button class="btn-primary" onclick="location.reload()">Coba Lagi</button>
+            </div>
         </div>
 
     </div>
 
     <audio id="bg-music" loop preload="none">
-        <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
+        <!-- Mengubah ke track yang lebih chill/orchestral -->
+        <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-16.mp3" type="audio/mpeg">
     </audio>
 
+    <!-- ── Game Modules ── -->
+    <script src="js/utils.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/fx.js"></script>
+    <script src="js/maze.js"></script>
+    <script src="js/characters.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/quests.js"></script>
+    <script src="js/chat.js"></script>
     <script src="game.js"></script>
+    <script>
+        // Initial setup for Lucide icons
+        lucide.createIcons();
+    </script>
 </body>
 
 </html>
