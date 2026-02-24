@@ -221,16 +221,27 @@ function setupJoystick() {
         const mag = Math.sqrt(dx * dx + dy * dy);
         if (mag < DEAD) return null;
 
-        const absX = Math.abs(dx);
-        const absY = Math.abs(dy);
+        // Calculate angle of input (-PI to PI)
+        let angle = Math.atan2(dy, dx);
 
-        // Cardinal Snapping Logic: Decide based on dominant axis ("lebih condong")
-        if (absX > absY) {
-            // Horizontal is dominant
-            return dx > 0 ? { dc: 1, dr: 0 } : { dc: -1, dr: 0 };
-        } else {
-            // Vertical is dominant
-            return dy > 0 ? { dc: 0, dr: 1 } : { dc: 0, dr: -1 };
+        // Convert to degrees for easier thresholding
+        // 0=Right, 90=Down, 180/-180=Left, -90=Up
+        let deg = angle * (180 / Math.PI);
+
+        // Isometric mapping:
+        // Up-Right (screen Right-Up) = maze UP (dc: 0, dr: -1)
+        // Down-Right (screen Right-Down) = maze RIGHT (dc: 1, dr: 0)
+        // Down-Left (screen Left-Down) = maze DOWN (dc: 0, dr: 1)
+        // Up-Left (screen Left-Up) = maze LEFT (dc: -1, dr: 0)
+
+        if (deg >= -45 && deg < 45) { // Right-ish on screen -> Isometric Right (Down-Right visually)
+            return { dc: 1, dr: 0 };
+        } else if (deg >= 45 && deg < 135) { // Down-ish on screen -> Isometric Down (Down-Left visually)
+            return { dc: 0, dr: 1 };
+        } else if (deg >= -135 && deg < -45) { // Up-ish on screen -> Isometric Up (Up-Right visually)
+            return { dc: 0, dr: -1 };
+        } else { // Left-ish on screen -> Isometric Left (Up-Left visually)
+            return { dc: -1, dr: 0 };
         }
     }
 

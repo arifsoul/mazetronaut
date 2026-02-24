@@ -83,20 +83,37 @@ function updateCameraTracking(dt) {
     if (!camTarget) camTarget = mid.clone();
     camTarget.lerp(mid, Math.min(1, dt * 2.2));
 
-    // Required frustum = half of world dist + generous padding
-    // Minimum = 5 cells so we're never too tight even when they meet
-    const minF = CELL * 6;
-    const required = Math.max(minF, worldDist * 0.62 + CELL * 4);
-    // Global zoom-out cap for portrait
+    // Required frustum calculation
     const aspect = window.innerWidth / window.innerHeight;
+    const minF = CELL * 5; // Reduced from 6 to allow closer zoom when near
+
+    // Calculate bounding box around chars
+    const distW = Math.abs(pA.x - pJ.x);
+    const distD = Math.abs(pA.z - pJ.z);
+
+    // Convert to isometric screen space roughly
+    const isoWidth = (distW + distD) * 0.707;  // 0.707 is ~cos(45)
+
+    // Add padding (around 3 cells of padding)
+    let required = isoWidth * 0.5 + CELL * 3;
+
+    // Apply strict maximums and minimums
+    required = Math.max(minF, required);
+
+    // On mobile (portrait), we want to make sure it fits horizontally
+    // But don't zoom out infinitely. Cap it if it gets crazy.
     const portraitScale = aspect < 1 ? Math.max(1, 1.15 / aspect) : 1;
     const cap = BASE_VIEW * portraitScale;
-    const targetFrustum = Math.min(cap, required);
+
+    // If it's portrait, use the required frustum but scale it down slightly so it's not tiny
+    const targetFrustum = aspect < 1 ? Math.min(cap * 1.5, required * 1.05) : Math.min(cap, required);
+
     currentFrustum += (targetFrustum - currentFrustum) * Math.min(1, dt * 1.6);
 
     // Move camera to keep isometric angle, tracking midpoint
     const ISO_OFFSET = new THREE.Vector3(80, 80, 80);
     const portraitBias = aspect < 1 ? CELL * 2.8 : 0; // Bias to push maze "up" on screen
+
     const finalTarget = camTarget.clone().add(new THREE.Vector3(portraitBias, 0, portraitBias));
 
     camera.position.copy(finalTarget.clone().add(ISO_OFFSET));

@@ -57,10 +57,10 @@ let camTarget = null;
 let menuCam = null;
 
 const THEMES = [
-    { fog: [12, 12, 15], amb: [40, 40, 60], pink: [255, 105, 180], blue: [68, 187, 255], name: 'monochrome-1' },
-    { fog: [25, 25, 30], amb: [30, 30, 50], pink: [0, 191, 255], blue: [148, 0, 255], name: 'monochrome-2' },
-    { fog: [8, 8, 12], amb: [50, 50, 70], pink: [255, 90, 90], blue: [255, 150, 0], name: 'monochrome-3' },
-    { fog: [20, 20, 25], amb: [45, 45, 65], pink: [0, 255, 180], blue: [80, 200, 255], name: 'monochrome-4' },
+    { fog: [22, 22, 28], amb: [70, 70, 95], pink: [255, 105, 180], blue: [68, 187, 255], name: 'monochrome-1' },
+    { fog: [35, 35, 42], amb: [60, 60, 85], pink: [0, 191, 255], blue: [148, 0, 255], name: 'monochrome-2' },
+    { fog: [18, 18, 24], amb: [80, 80, 105], pink: [255, 90, 90], blue: [255, 150, 0], name: 'monochrome-3' },
+    { fog: [30, 30, 38], amb: [75, 75, 100], pink: [0, 255, 180], blue: [80, 200, 255], name: 'monochrome-4' },
 ];
 let themeIdx = 0, themeNext = 1, themeT = 0, themeTimer = 0;
 const THEME_DUR = 12;
@@ -115,10 +115,10 @@ function drawFogOverlay() {
     if (!gameStarted) return;
     const W = fogOverlay.width, H = fogOverlay.height;
     fogCtx.clearRect(0, 0, W, H);
-    fogCtx.fillStyle = fogOverlay.dataset.fogColor || 'rgba(15,15,18,0.74)';
+    fogCtx.fillStyle = fogOverlay.dataset.fogColor || 'rgba(20,20,25,0.65)';
     fogCtx.fillRect(0, 0, W, H);
 
-    const torchR = (Math.min(W, H) * 0.32) * (window.isSuperTorch ? 1.8 : 1.0);
+    const torchR = (Math.min(W, H) * 0.24) * (window.isSuperTorch ? 1.8 : 1.0);
     const HALF_ANGLE = Math.PI / 4;
     const chars = [
         { group: arif.group, color: '135, 206, 250', visible: true },
@@ -159,7 +159,7 @@ function drawFogOverlay() {
         // Neutral core to punch through fog tint (white center)
         const coreR = ambR * 0.4;
         const coreGrad = fogCtx.createRadialGradient(sc.x, sc.y, 0, sc.x, sc.y, coreR);
-        coreGrad.addColorStop(0, 'rgba(255,255,255,0.92)');
+        coreGrad.addColorStop(0, 'rgba(255,255,255,1.0)');
         coreGrad.addColorStop(1, 'rgba(255,255,255,0)');
         fogCtx.fillStyle = coreGrad;
         fogCtx.beginPath();
@@ -195,7 +195,7 @@ function updateColorTheme(dt) {
     const root = document.documentElement.style;
     root.setProperty('--pink', arrToCSS(curPink));
     root.setProperty('--blue', arrToCSS(curBlue));
-    if (fogCtx) fogOverlay.dataset.fogColor = `rgba(${Math.round(curFog[0])},${Math.round(curFog[1])},${Math.round(curFog[2])},0.76)`;
+    if (fogCtx) fogOverlay.dataset.fogColor = `rgba(${Math.round(curFog[0])},${Math.round(curFog[1])},${Math.round(curFog[2])},0.65)`;
 }
 
 function startGame() {
@@ -221,9 +221,8 @@ function startGame() {
         document.getElementById('start-screen').classList.add('hidden');
     }, 800);
 
-    const h = document.getElementById('hud'), m = document.getElementById('minimap'), mc = document.getElementById('mobile-controls');
-    if (h) h.style.opacity = '0';
-    if (m) m.style.opacity = '0';
+    const topBar = document.getElementById('top-bar'), mc = document.getElementById('mobile-controls');
+    if (topBar) topBar.style.opacity = '0';
     if (mc) mc.style.opacity = '0';
 
     updateMobileUIToggle();
@@ -527,9 +526,8 @@ function animate() {
         if (alpha >= 1) {
             if (isIntro) {
                 // Fade in HUD gently when intro ends
-                const h = document.getElementById('hud'), m = document.getElementById('minimap'), mc = document.getElementById('mobile-controls');
-                if (h) h.style.opacity = '1';
-                if (m) m.style.opacity = '1';
+                const topBar = document.getElementById('top-bar'), mc = document.getElementById('mobile-controls');
+                if (topBar) topBar.style.opacity = '1';
                 if (mc) mc.style.opacity = '1';
                 isIntro = false;
             }

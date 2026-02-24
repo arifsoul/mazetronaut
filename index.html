@@ -62,26 +62,21 @@
             </div>
         </div>
 
-        <!-- ── HUD ── -->
-        <div id="hud">
-            <div id="timer-box"><i data-lucide="timer"></i> <span id="timer">00:00</span></div>
-            <div id="hud-meta">
-                <span id="lives-display"></span>
-                <span id="quest-status"></span>
+        <!-- ── Unified Top Bar ── -->
+        <div id="top-bar">
+            <!-- Left Side: Timer & Stats -->
+            <div id="top-stats">
+                <div id="timer-box"><i data-lucide="timer"></i> <span id="timer">00:00</span></div>
+                <div id="hud-meta">
+                    <span id="lives-display"></span>
+                    <span id="quest-status"></span>
+                </div>
             </div>
-            <div id="love-meter">
-                <div class="love-label">
-                    <span class="blue-dot">🔵</span>
-                    <span class="pink-dot">🩷</span>
-                </div>
-                <div id="love-bar">
-                    <div id="love-bar-fill"></div><i data-lucide="heart" class="heart-tip"></i>
-                </div>
+            <!-- Right Side: Minimap -->
+            <div id="top-minimap">
+                <canvas id="minimap" width="150" height="150"></canvas>
             </div>
         </div>
-
-        <!-- ── Minimap ── -->
-        <canvas id="minimap" width="150" height="150"></canvas>
 
         <!-- ── Analog Joystick (mobile) ── -->
         <div id="mobile-controls" class="hidden">

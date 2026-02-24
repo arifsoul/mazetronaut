@@ -454,42 +454,80 @@ kbd {
     font-size: 1.5rem;
 }
 
-/* ── HUD ── */
-#hud {
+/* ── Top Unified Bar ── */
+#top-bar {
     position: absolute;
-    top: 1rem;
-    left: 50%;
-    transform: translateX(-50%);
+    top: 0;
+    left: 0;
+    width: 100vw;
+    padding: 1rem 1.5rem;
     display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 1.5rem;
-    padding: 0.4rem 1.5rem;
-    background: rgba(8, 2, 25, 0.7);
-    border: 1px solid rgba(160, 80, 255, 0.3);
-    border-radius: 3rem;
-    backdrop-filter: blur(10px);
+    justify-content: space-between;
+    align-items: flex-start;
     pointer-events: none;
     z-index: 20;
     opacity: 0;
     transition: opacity 0.5s ease;
+    box-sizing: border-box;
+}
+
+#top-stats {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+    /* Optional: minimal background for text readability without being a heavy box */
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8), 0 0 10px rgba(160, 80, 255, 0.5);
+}
+
+#hud-meta {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+/* Mobile viewport overrides */
+@media screen and (max-width: 768px) {
+    #top-bar {
+        padding: 0.6rem 0.8rem;
+    }
+
+    #top-stats {
+        gap: 0.8rem;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    #hud-meta {
+        gap: 0.6rem;
+    }
+
+    #minimap {
+        width: 90px !important;
+        height: 90px !important;
+    }
 }
 
 #timer-box {
-    font-size: 0.95rem;
+    font-size: 0.8rem;
+    /* Native smaller font */
     font-weight: 700;
-    letter-spacing: .06em;
+    letter-spacing: .02em;
     display: flex;
     align-items: center;
-    gap: .4rem;
+    gap: .2rem;
     color: #fff;
+    white-space: nowrap;
+    /* Prevent timer from wrapping */
 }
 
 #love-meter {
-    width: 140px;
+    width: 80px;
+    /* Shortened width so it fits native */
     display: flex;
     flex-direction: column;
     justify-content: center;
+    flex-shrink: 1;
+    /* Allow shrinking if needed */
 }
 
 .love-label {
@@ -538,20 +576,15 @@ kbd {
 
 /* ── Minimap ── */
 #minimap {
-    position: absolute;
-    top: .9rem;
-    right: .9rem;
-    width: 120px;
-    height: 120px;
-    z-index: 20;
-    pointer-events: none;
+    width: 130px;
+    height: 130px;
     border: 1px solid rgba(255, 255, 255, .18);
     border-radius: .7rem;
-    background: rgba(8, 2, 20, .75);
+    background: rgba(8, 2, 20, .85);
     backdrop-filter: blur(4px);
     image-rendering: pixelated;
-    opacity: 0;
-    transition: opacity 0.5s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    pointer-events: none;
 }
 
 /* ── In-Game Tutorial Chat ── */
@@ -627,8 +660,8 @@ kbd {
 /* ── Analog Joystick (mobile) ── */
 #mobile-controls {
     position: absolute;
-    bottom: 1.6rem;
-    right: 1.6rem;
+    bottom: 2rem;
+    right: 1rem;
     /* corner — won't cover maze centre */
     display: flex;
     flex-direction: column;
@@ -637,6 +670,9 @@ kbd {
     pointer-events: none;
     z-index: 30;
     transition: opacity 0.5s ease;
+    transform: scale(0.85);
+    /* Scale down joystick */
+    transform-origin: bottom right;
 }
 
 #mobile-controls.hidden {
@@ -645,8 +681,8 @@ kbd {
 
 /* Joystick outer base ring */
 #joystick-base {
-    width: 130px;
-    height: 130px;
+    width: 110px;
+    height: 110px;
     border-radius: 50%;
     background: rgba(8, 0, 25, 0.60);
     border: 2px solid rgba(255, 105, 180, 0.45);
@@ -674,8 +710,8 @@ kbd {
 /* Draggable knob */
 #joystick-knob {
     position: absolute;
-    width: 52px;
-    height: 52px;
+    width: 44px;
+    height: 44px;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
@@ -756,10 +792,10 @@ kbd {
 #tutorial-chat {
     position: absolute;
     bottom: 2rem;
-    left: 2rem;
+    left: 1rem;
     display: flex;
     align-items: flex-end;
-    gap: 1rem;
+    gap: 0.5rem;
     z-index: 50;
     transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     pointer-events: none;
@@ -772,8 +808,8 @@ kbd {
 }
 
 #chat-avatar {
-    width: 60px;
-    height: 60px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     border: 2px solid var(--pink);
     box-shadow: 0 0 15px rgba(255, 77, 109, 0.4);
@@ -784,13 +820,13 @@ kbd {
 #chat-bubble {
     background: rgba(16, 5, 40, 0.85);
     border: 1px solid rgba(160, 80, 255, 0.5);
-    padding: 0.8rem 1.2rem;
-    border-radius: 1rem;
+    padding: 0.6rem 0.9rem;
+    border-radius: 0.8rem;
     border-bottom-left-radius: 0;
     backdrop-filter: blur(8px);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-    max-width: 320px;
-    width: 85vw;
+    max-width: 260px;
+    width: calc(100vw - 160px);
     /* Ensure it fits on mobile */
 }
 

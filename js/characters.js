@@ -67,7 +67,7 @@ function loadCharacters(onReady) {
         wrapper.add(gltfScene);
 
         // Torchlight on wrapper
-        addLight(wrapper, torchColor, 4.5, LIGHT_RANGE, 0, 2.3, 0);
+        addLight(wrapper, torchColor, 6.5, LIGHT_RANGE * 0.55, 0, 2.3, 0);
 
         // --- Head Glint ---
         const glint = new THREE.PointLight(torchColor, 1.5, 4);
@@ -276,7 +276,7 @@ function makeChibiBoy(color) {
 
 
     // Torchlight
-    addLight(g, color, 4.5, LIGHT_RANGE, 0, 2.3, 0);
+    addLight(g, color, 6.5, LIGHT_RANGE * 0.55, 0, 2.3, 0);
 
     return g;
 }
@@ -402,7 +402,7 @@ function makeChibiGirl(color) {
 
 
     // Torch light
-    addLight(g, color, 4.5, LIGHT_RANGE, 0, 2.3, 0);
+    addLight(g, color, 6.5, LIGHT_RANGE * 0.55, 0, 2.3, 0);
 
     // --- Rocket Nozzle & Thrust ---
     const nozzle = new THREE.Mesh(
