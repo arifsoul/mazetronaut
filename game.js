@@ -14,6 +14,9 @@ const LIGHT_RANGE = 17;
 let scene, camera, renderer;
 let mazeData = [];
 let arif, ajeng;
+let fogOverlay, fogCtx;
+let gameStarted = false;
+let gameWon = false;
 let elapsedSec = 0;
 let timerID = null;
 let particles = [];
@@ -32,6 +35,11 @@ const heldKeys = { up: false, down: false, left: false, right: false };
 const resumeAudio = () => {
     if (menuSynth) {
         menuSynth.start();
+        const menuMusic = document.getElementById('menu-music');
+        if (menuMusic && !gameStarted) {
+            menuMusic.volume = 0.2;
+            menuMusic.play().catch(() => { });
+        }
         // If context started, remove all triggers
         if (menuSynth.ctx && menuSynth.ctx.state === 'running') {
             window.removeEventListener('click', resumeAudio);
@@ -254,8 +262,14 @@ function startGame() {
         if (el) el.textContent = formatTime(elapsedSec);
     }, 1000);
 
+    const menuMusic = document.getElementById('menu-music');
+    if (menuMusic) menuMusic.pause();
+
     const music = document.getElementById('bg-music');
-    if (music) music.play().catch(() => { });
+    if (music) {
+        music.volume = 0.2;
+        music.play().catch(() => { });
+    }
 
     placeQuestNodes();
     spawnPowerUps();

@@ -26,25 +26,9 @@ class SynthMusic {
     }
 
     update(dt) {
+        // Disabled background synth music so it only handles SFX
+        // MP3 tracks now handle background music
         if (!this.playing || !this.ctx) return;
-
-        if (this.isLiminal) {
-            // Liminal drone mode: play long pad notes every 2 seconds
-            this.timer += dt;
-            if (this.timer > 2.5) {
-                this.timer = 0;
-                this.playPadNote([48, 52, 55, 60][Math.floor(Math.random() * 4)]); // C major / A minor feel
-            }
-            return;
-        }
-
-        this.timer += dt;
-        const spb = 60 / this.bpm / 4; // 16th notes
-        if (this.timer > spb) {
-            this.timer -= spb;
-            if (this.step % 2 === 0) this.playNote(this.notes[this.step % this.notes.length]);
-            this.step++;
-        }
     }
 
     playPadNote(midi) {
