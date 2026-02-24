@@ -96,8 +96,11 @@ function updateCameraTracking(dt) {
 
     // Move camera to keep isometric angle, tracking midpoint
     const ISO_OFFSET = new THREE.Vector3(80, 80, 80);
-    camera.position.copy(camTarget.clone().add(ISO_OFFSET));
-    camera.lookAt(camTarget);
+    const portraitBias = aspect < 1 ? CELL * 2.8 : 0; // Bias to push maze "up" on screen
+    const finalTarget = camTarget.clone().add(new THREE.Vector3(portraitBias, 0, portraitBias));
+
+    camera.position.copy(finalTarget.clone().add(ISO_OFFSET));
+    camera.lookAt(finalTarget);
 
     const vw = currentFrustum;
     camera.left = -vw * aspect;

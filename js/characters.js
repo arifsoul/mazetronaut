@@ -5,6 +5,8 @@
 function addLight(g, color, intensity, dist, px, py, pz) {
     const l = new THREE.PointLight(color, intensity, dist, 1.8);
     l.position.set(px, py, pz);
+    l.targetIntensity = intensity; // Store intended intensity
+    l.intensity = 0; // Start off for intro
     g.add(l);
     return l;
 }
@@ -12,10 +14,36 @@ function addLight(g, color, intensity, dist, px, py, pz) {
 // ── Load GLB Characters ───────────────────────────────────
 function loadCharacters(onReady) {
     const loader = new THREE.GLTFLoader();
+
+    // --- DRACO Support ---
+    const dracoLoader = new THREE.DRACOLoader();
+    dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.4.1/');
+    loader.setDRACOLoader(dracoLoader);
+
+    // --- Meshopt Support ---
+    if (window.MeshoptDecoder) {
+        loader.setMeshoptDecoder(window.MeshoptDecoder);
+    } else if (typeof MeshoptDecoder !== 'undefined') {
+        loader.setMeshoptDecoder(MeshoptDecoder);
+    }
+
     const MX0 = (MAZE_W - 1) * CELL / 2, MZ0 = (MAZE_H - 1) * CELL / 2;
 
     let arifLoaded = false, ajengLoaded = false;
+    let arifFail = false, ajengFail = false;
     const tryReady = () => { if (arifLoaded && ajengLoaded) { initTrails(); onReady(); } };
+
+    // --- Loading Timeout ---
+    const loadTimeout = setTimeout(() => {
+        if (!arifLoaded) {
+            console.warn('arif.glb loading timed out or failed, forcing fallback.');
+            useArifFallback();
+        }
+        if (!ajengLoaded) {
+            console.warn('ajeng.glb loading timed out or failed, forcing fallback.');
+            useAjengFallback();
+        }
+    }, 15000);
 
     function setupGLBChar(gltfScene, torchColor) {
         // Wrapper group – position/rotation/scale controlled by game
@@ -52,33 +80,68 @@ function loadCharacters(onReady) {
         return { wrapper, baseScale };
     }
 
+    const useArifFallback = () => {
+        if (arifLoaded) return;
+        const wrapper = new THREE.Group();
+        const arifG = makeChibiBoy(0x87CEFA);
+        wrapper.add(arifG);
+        scene.add(wrapper);
+        arif = { group: wrapper, model: arifG, col: 1, row: 1, targetCol: 1, targetRow: 1, moving: false, baseScale: 1 };
+        wrapper.position.set(MX0 - 7, 0, MZ0);
+        wrapper.rotation.y = 0.4;
+        wrapper.scale.setScalar(2.2);
+        arifLoaded = true;
+        tryReady();
+    };
+
+    const useAjengFallback = () => {
+        if (ajengLoaded) return;
+        const wrapper = new THREE.Group();
+        const ajengG = makeChibiGirl(0xFFB6C1);
+        wrapper.add(ajengG);
+        scene.add(wrapper);
+        ajeng = { group: wrapper, model: ajengG, col: MAZE_W - 2, row: MAZE_H - 2, targetCol: MAZE_W - 2, targetRow: MAZE_H - 2, moving: false, baseScale: 1 };
+        wrapper.position.set(MX0 + 7, 0, MZ0);
+        wrapper.rotation.y = -0.4;
+        wrapper.scale.setScalar(2.2);
+        ajengLoaded = true;
+        tryReady();
+    };
+
     // ── Load Arif (blue torchlight) ──
     loader.load(
         'arif.glb',
         (gltf) => {
+            if (arifLoaded) return; // Already loaded fallback
             const { wrapper, baseScale } = setupGLBChar(gltf.scene, 0x87CEFA);
+
+            // Failsafe: remove existing if any
+            if (arif && arif.group) { scene.remove(arif.group); }
+
             scene.add(wrapper);
-            arif = { group: wrapper, col: 1, row: 1, targetCol: 1, targetRow: 1, moving: false, baseScale: 1 };
-
-            // Menu position (floating left, larger for showcase)
-            wrapper.position.set(MX0 - 7, 0, MZ0);
+            arif = {
+                group: wrapper,
+                model: gltf.scene,
+                col: 1, row: 1,
+                targetCol: 1, targetRow: 1,
+                moving: false, baseScale: 1,
+                introAnimating: false,
+                flashlightOn: false
+            };
+            // Initial menu position: floating high
+            wrapper.position.set(MX0 - 7, 7, MZ0 + 12);
             wrapper.rotation.y = 0.4;
-            wrapper.scale.setScalar(2.2);  // 2.2× bigger than gameplay size
-
+            wrapper.scale.setScalar(2.2);
             arifLoaded = true;
             tryReady();
         },
         undefined,
         (err) => {
-            console.warn('arif.glb gagal dimuat, menggunakan karakter prosedural.', err);
-            const arifG = makeChibiBoy(0x87CEFA);
-            scene.add(arifG);
-            arif = { group: arifG, col: 1, row: 1, targetCol: 1, targetRow: 1, moving: false, baseScale: 1 };
-            arifG.position.set(MX0 - 7, 0, MZ0);
-            arifG.rotation.y = 0.4;
-            arifG.scale.setScalar(2.2);
-            arifLoaded = true;
-            tryReady();
+            arifFail = true;
+            console.error('Arif GLB Error:', err);
+            // Don't fallback immediately, let the timeout handle it 
+            // unless we want to be aggressive. Let's wait 3s on error before fallback.
+            setTimeout(() => { if (!arifLoaded) useArifFallback(); }, 3000);
         }
     );
 
@@ -86,29 +149,34 @@ function loadCharacters(onReady) {
     loader.load(
         'ajeng.glb',
         (gltf) => {
+            if (ajengLoaded) return;
             const { wrapper, baseScale } = setupGLBChar(gltf.scene, 0xFFB6C1);
+
+            // Failsafe: remove existing if any
+            if (ajeng && ajeng.group) { scene.remove(ajeng.group); }
+
             scene.add(wrapper);
-            ajeng = { group: wrapper, col: MAZE_W - 2, row: MAZE_H - 2, targetCol: MAZE_W - 2, targetRow: MAZE_H - 2, moving: false, baseScale: 1 };
-
-            // Menu position (floating right, larger scale for showcase)
-            wrapper.position.set(MX0 + 7, 0, MZ0);
+            ajeng = {
+                group: wrapper,
+                model: gltf.scene,
+                col: MAZE_W - 2, row: MAZE_H - 2,
+                targetCol: MAZE_W - 2, targetRow: MAZE_H - 2,
+                moving: false, baseScale: 1,
+                introAnimating: false,
+                flashlightOn: false
+            };
+            // Initial menu position: floating high
+            wrapper.position.set(MX0 + 7, 7.5, MZ0 + 12);
             wrapper.rotation.y = -0.4;
-            wrapper.scale.setScalar(2.2);  // 2.2× bigger than gameplay size
-
+            wrapper.scale.setScalar(2.2);
             ajengLoaded = true;
             tryReady();
         },
         undefined,
         (err) => {
-            console.warn('ajeng.glb gagal dimuat, menggunakan karakter prosedural.', err);
-            const ajengG = makeChibiGirl(0xFFB6C1);
-            scene.add(ajengG);
-            ajeng = { group: ajengG, col: MAZE_W - 2, row: MAZE_H - 2, targetCol: MAZE_W - 2, targetRow: MAZE_H - 2, moving: false, baseScale: 1 };
-            ajengG.position.set(MX0 + 7, 0, MZ0);
-            ajengG.rotation.y = -0.4;
-            ajengG.scale.setScalar(2.2);
-            ajengLoaded = true;
-            tryReady();
+            ajengFail = true;
+            console.error('Ajeng GLB Error:', err);
+            setTimeout(() => { if (!ajengLoaded) useAjengFallback(); }, 3000);
         }
     );
 }
@@ -386,20 +454,43 @@ function updateCharPos(char, dt) {
         char.group.position.z += dz * ratio;
     }
 
-    // Smoother rotation + Leaning
-    if (dist > 0.01) {
-        const targetAngle = Math.atan2(dx, dz);
-        let diff = targetAngle - char.group.rotation.y;
-        while (diff < -Math.PI) diff += Math.PI * 2;
-        while (diff > Math.PI) diff -= Math.PI * 2;
-        char.group.rotation.y += diff * 0.28;
+}
 
-        // Leaning forward (X rotation relative to movement)
-        const leanTarget = 0.45;
-        char.group.rotation.x += (leanTarget - char.group.rotation.x) * 0.15;
-        char.group.rotation.z = 0;
-    } else {
-        // Reset lean when stopping
-        char.group.rotation.x += (0 - char.group.rotation.x) * 0.15;
+function updateCharVisuals(char, dt) {
+    if (!char || !char.group || !char.model) return;
+
+    // --- LEANING LOGIC (Forward tilt) ---
+    const leanTarget = char.moving ? 0.87 : 0; // 0.87 rad = ~50 degrees
+    char.model.rotation.x += (leanTarget - char.model.rotation.x) * 0.15;
+
+    // Ensure parent group doesn't have stray rotations
+    char.group.rotation.x = 0;
+    char.group.rotation.z = 0;
+
+    // --- SMOOTH ROTATION (Y-Axis & Z-Axis Banking) ---
+    const prevRotY = char.group.rotation.y;
+
+    if (char.moving) {
+        const tw = cellToWorld(char.targetCol, char.targetRow);
+        const dx = tw.x - char.group.position.x;
+        const dz = tw.z - char.group.position.z;
+
+        if (Math.sqrt(dx * dx + dz * dz) > 0.01) {
+            const targetAngle = Math.atan2(dx, dz);
+            let diff = targetAngle - char.group.rotation.y;
+            while (diff < -Math.PI) diff += Math.PI * 2;
+            while (diff > Math.PI) diff -= Math.PI * 2;
+            char.group.rotation.y += diff * 0.28;
+        }
     }
+
+    // --- BANKING LOGIC (Side tilt when turning) ---
+    // Positive diffY means turning left, negative means turning right (in radians)
+    let turnDiff = char.group.rotation.y - prevRotY;
+    if (turnDiff > Math.PI) turnDiff -= Math.PI * 2;
+    if (turnDiff < -Math.PI) turnDiff += Math.PI * 2;
+
+    // targetZ: tilt proportional to turn speed, max ~25 degrees (0.43 rad)
+    const bankTarget = -turnDiff * 5.5;
+    char.model.rotation.z += (bankTarget - char.model.rotation.z) * 0.1;
 }

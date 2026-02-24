@@ -220,11 +220,18 @@ function setupJoystick() {
     function getDir(dx, dy) {
         const mag = Math.sqrt(dx * dx + dy * dy);
         if (mag < DEAD) return null;
-        const deg = ((Math.atan2(dy, dx) * 180 / Math.PI) + 360) % 360;
-        if (deg >= 315 || deg < 45) return { dc: 1, dr: 0 };  // right
-        if (deg >= 45 && deg < 135) return { dc: 0, dr: 1 };  // down
-        if (deg >= 135 && deg < 225) return { dc: -1, dr: 0 };  // left
-        return { dc: 0, dr: -1 };  // up
+
+        const absX = Math.abs(dx);
+        const absY = Math.abs(dy);
+
+        // Cardinal Snapping Logic: Decide based on dominant axis ("lebih condong")
+        if (absX > absY) {
+            // Horizontal is dominant
+            return dx > 0 ? { dc: 1, dr: 0 } : { dc: -1, dr: 0 };
+        } else {
+            // Vertical is dominant
+            return dy > 0 ? { dc: 0, dr: 1 } : { dc: 0, dr: -1 };
+        }
     }
 
     function moveKnob(dx, dy) {

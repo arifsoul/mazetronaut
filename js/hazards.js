@@ -69,7 +69,7 @@ function createLaserGate(c, r, orient) {
     hazards.push({ group: g, beam, glow, beacon, col: c, row: r, active: true, timer: Math.random() * 2 });
 }
 
-function updateHazards(dt) {
+function updateHazards(dt, t) {
     hazardTimer += dt;
     hazards.forEach(h => {
         h.timer += dt;
@@ -80,9 +80,21 @@ function updateHazards(dt) {
             h.active = !h.active;
             h.beam.visible = h.active;
             if (h.glow) h.glow.visible = h.active;
+            h.beam.material.color.setHex(0xff0000);
+            h.beam.material.opacity = 0.9;
+        }
+
+        // Warning state: 0.5s before activation
+        if (!h.active && h.timer > 1.5) {
+            h.beam.visible = true;
+            h.beam.material.color.setHex(0xffaa00); // Orange warning
+            h.beam.material.opacity = 0.2 + Math.sin(t * 20) * 0.1; // Rapid flicker
+            if (h.glow) h.glow.visible = false;
         }
 
         if (h.active) {
+            h.beam.material.color.setHex(0xff0000);
+            h.beam.material.opacity = 0.9 + Math.sin(t * 10) * 0.1;
             // Check collision with characters
             [arif, ajeng].forEach(char => {
                 if (char.col === h.col && char.row === h.row && !char.invul) {

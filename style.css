@@ -64,6 +64,30 @@ body {
     visibility: hidden;
 }
 
+.start-out {
+    animation: zoomOutFade 0.85s forwards cubic-bezier(0.8, 0, 0.2, 1) !important;
+}
+
+@keyframes zoomOutFade {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+        filter: blur(0);
+    }
+
+    30% {
+        transform: scale(0.95);
+        opacity: 1;
+        filter: blur(1px);
+    }
+
+    100% {
+        transform: scale(3.5);
+        opacity: 0;
+        filter: blur(12px);
+    }
+}
+
 /* ── Futuristic HUD ── */
 .hud-container {
     position: relative;
@@ -612,6 +636,7 @@ kbd {
     gap: .35rem;
     pointer-events: none;
     z-index: 30;
+    transition: opacity 0.5s ease;
 }
 
 #mobile-controls.hidden {
@@ -765,6 +790,8 @@ kbd {
     backdrop-filter: blur(8px);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
     max-width: 320px;
+    width: 85vw;
+    /* Ensure it fits on mobile */
 }
 
 #chat-name {
@@ -899,4 +926,26 @@ kbd {
 #joystick-knob {
     width: 44px;
     height: 44px;
+}
+
+@keyframes fadeUpNotification {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, 20px);
+    }
+
+    20% {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+
+    80% {
+        opacity: 1;
+        transform: translate(-50%, -5px);
+    }
+
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -20px);
+    }
 }

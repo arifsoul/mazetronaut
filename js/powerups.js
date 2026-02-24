@@ -68,7 +68,9 @@ function isOccupied(c, r) {
 }
 
 function updatePowerUps(dt, t) {
-    powerups.forEach((p, idx) => {
+    // Loop backwards to safely splice while iterating
+    for (let i = powerups.length - 1; i >= 0; i--) {
+        const p = powerups[i];
         p.mesh.rotation.y += dt * 2;
         p.mesh.position.y = 1.2 + Math.sin(t * 3) * 0.2;
 
@@ -77,22 +79,24 @@ function updatePowerUps(dt, t) {
             if (char.col === p.col && char.row === p.row) {
                 applyPowerUp(char, p);
                 scene.remove(p.mesh);
-                powerups.splice(idx, 1);
+                powerups.splice(i, 1);
                 menuSynth.playSFX('fusion');
                 showPowerUpMessage(p.config.label, p.config.color);
             }
         });
-    });
+    }
 }
 
 function applyPowerUp(char, p) {
     if (p.type === 'SPEED') {
-        const originalSpd = MOVE_SPD;
-        window.MOVE_SPD = 14;
-        setTimeout(() => window.MOVE_SPD = 8.5, 8000);
+        const originalSpd = 8.5;
+        MOVE_SPD = 14; // Access global let
+        if (window.speedTimeout) clearTimeout(window.speedTimeout);
+        window.speedTimeout = setTimeout(() => MOVE_SPD = originalSpd, 8000);
     } else if (p.type === 'LUMEN') {
         window.isSuperTorch = true;
-        setTimeout(() => window.isSuperTorch = false, 12000);
+        if (window.lumenTimeout) clearTimeout(window.lumenTimeout);
+        window.lumenTimeout = setTimeout(() => window.isSuperTorch = false, 12000);
     } else if (p.type === 'SHIELD') {
         char.hasShield = true;
     }
@@ -100,14 +104,19 @@ function applyPowerUp(char, p) {
 
 function showPowerUpMessage(text, color) {
     const msg = document.createElement('div');
+    const colorHex = `#${color.toString(16).padStart(6, '0')}`;
     msg.style.cssText = `
-        position:absolute; bottom:20%; left:50%; transform:translateX(-50%);
-        background:rgba(0,0,0,0.8); color:#${color.toString(16).padStart(6, '0')};
-        padding:10px 20px; border-radius:20px; border:2px solid;
-        font-family:Rajdhani,sans-serif; font-weight:bold; font-size:1.2rem;
-        z-index:100; animation: fadeUp 1s ease-out forwards;
+        position:absolute; top:15%; left:50%; transform:translateX(-50%);
+        background:rgba(8,2,25,0.78); color:${colorHex};
+        padding:12px 24px; border-radius:30px; border:1px solid ${colorHex}88;
+        font-family:Rajdhani,sans-serif; font-weight:900; font-size:1.3rem;
+        z-index:200; backdrop-filter:blur(8px);
+        box-shadow: 0 0 20px ${colorHex}44;
+        animation: fadeUpNotification 1.5s ease-out forwards;
+        text-transform: uppercase; letter-spacing: 0.1em;
+        pointer-events: none;
     `;
-    msg.textContent = `🚀 ${text}!`;
+    msg.innerHTML = `<span style="margin-right:8px">⚡</span> ${text}`;
     document.getElementById('game-container').appendChild(msg);
-    setTimeout(() => msg.remove(), 1500);
+    setTimeout(() => msg.remove(), 1600);
 }

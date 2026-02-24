@@ -1,5 +1,5 @@
 // =============================================================
-//  ARIF & AJENG: THE REUNION  —  Space Isometric Maze
+//  MAZETRONAUT: THE REUNION  —  Space Isometric Maze
 // =============================================================
 
 // ── Shared Globals (Window Scope) ───────────────────────────
@@ -7,7 +7,7 @@ const MAZE_W = 25;
 const MAZE_H = 25;
 const CELL = 4;
 const WALL_H = 3.5;
-const MOVE_SPD = 8.5;
+let MOVE_SPD = 8.5;
 const WIN_DIST = CELL * 1.6;
 const LIGHT_RANGE = 17;
 
@@ -24,7 +24,31 @@ let minimapCvs, minimapCtx;
 let moveQueue = null;
 let lastMoveDir = null;
 let asteroids = [];
+let isIntro = false;
+let introT = 0;
+const introDuration = 2.5;
 const heldKeys = { up: false, down: false, left: false, right: false };
+
+// --- Audio Start Trigger ---
+const resumeAudio = () => {
+    if (menuSynth) {
+        menuSynth.start();
+        // If context started, remove all triggers
+        if (menuSynth.ctx && menuSynth.ctx.state === 'running') {
+            window.removeEventListener('click', resumeAudio);
+            window.removeEventListener('touchstart', resumeAudio);
+            window.removeEventListener('mousemove', resumeAudio);
+            window.removeEventListener('keydown', resumeAudio);
+        }
+    }
+};
+window.addEventListener('click', resumeAudio);
+window.addEventListener('mousedown', resumeAudio);
+window.addEventListener('touchstart', resumeAudio);
+window.addEventListener('mousemove', resumeAudio, { once: true });
+window.addEventListener('keydown', resumeAudio, { once: true });
+window.addEventListener('wheel', resumeAudio, { once: true });
+window.addEventListener('pointerdown', resumeAudio, { once: true });
 
 const BASE_VIEW = MAZE_W * CELL * 0.58;
 let currentZoom = 1.0;
@@ -175,20 +199,46 @@ function updateColorTheme(dt) {
 }
 
 function startGame() {
-    if (gameStarted) return;
+    if (gameStarted || !arif || !ajeng) return;
     gameStarted = true;
-    document.getElementById('start-screen').classList.add('hidden');
-    const h = document.getElementById('hud'), m = document.getElementById('minimap');
-    if (h) h.style.opacity = '1';
-    if (m) m.style.opacity = '1';
+
+    // UI Cinematic Out Intro
+    const startBtn = document.getElementById('start-button');
+    if (startBtn) {
+        startBtn.innerHTML = '<span class="btn-glitch"></span>ENGAGING MISSION...';
+        startBtn.style.pointerEvents = 'none';
+        startBtn.style.background = 'var(--pink)';
+        startBtn.style.color = '#fff';
+        startBtn.style.boxShadow = '0 0 30px var(--pink)';
+        startBtn.style.borderColor = 'var(--pink)';
+    }
+
+    const menuContent = document.querySelector('.main-menu-content');
+    if (menuContent) menuContent.classList.add('start-out');
+    document.querySelectorAll('.hud-frame').forEach(f => f.classList.add('start-out'));
+
+    setTimeout(() => {
+        document.getElementById('start-screen').classList.add('hidden');
+    }, 800);
+
+    const h = document.getElementById('hud'), m = document.getElementById('minimap'), mc = document.getElementById('mobile-controls');
+    if (h) h.style.opacity = '0';
+    if (m) m.style.opacity = '0';
+    if (mc) mc.style.opacity = '0';
 
     updateMobileUIToggle();
     if (scene.fog) scene.fog.density = 0.006;
 
-    arif.group.position.copy(cellToWorld(1, 1));
-    arif.group.scale.setScalar(arif.baseScale || 1);
-    ajeng.group.position.copy(cellToWorld(MAZE_W - 2, MAZE_H - 2));
-    ajeng.group.scale.setScalar(ajeng.baseScale || 1);
+    // Start Intro Sequence
+    isIntro = true;
+    introT = 0;
+    menuSynth.transitionToGameplay();
+
+    // Store starting positions for animation
+    arif.introStart = arif.group.position.clone();
+    ajeng.introStart = ajeng.group.position.clone();
+    arif.introTarget = cellToWorld(1, 1);
+    ajeng.introTarget = cellToWorld(MAZE_W - 2, MAZE_H - 2);
 
     const cx = (MAZE_W - 1) * CELL / 2, cz = (MAZE_H - 1) * CELL / 2;
     if (camTarget) camTarget.set(cx, 0, cz);
@@ -196,7 +246,7 @@ function startGame() {
     camera.lookAt(cx, 0, cz);
 
     timerID = setInterval(() => {
-        elapsedSec++;
+        if (!isIntro) elapsedSec++;
         const el = document.getElementById('timer');
         if (el) el.textContent = formatTime(elapsedSec);
     }, 1000);
@@ -241,6 +291,28 @@ function init() {
     createLoveStarField();
     createAsteroids();
 
+    const startBtn = document.getElementById('start-button');
+    if (startBtn) {
+        startBtn.disabled = true;
+        startBtn.textContent = 'CONNECTING TO MISSION...';
+    }
+
+    loadQuestions();
+    loadChats();
+
+    console.log('Initiating unified character load...');
+    loadCharacters(() => {
+        console.log('Characters ready!');
+        updateMobileUIToggle();
+        const b = document.getElementById('start-button');
+        if (b) {
+            b.disabled = false;
+            b.textContent = 'INITIATE MISSION';
+        }
+        // Start animate ONLY once characters are ready
+        animate();
+    });
+
     // --- Maze Floor (Grid) ---
     const floorGeo = new THREE.PlaneGeometry(MAZE_W * CELL, MAZE_H * CELL);
     const floorMat = new THREE.MeshStandardMaterial({
@@ -260,8 +332,9 @@ function init() {
 
     const MX0 = (MAZE_W - 1) * CELL / 2, MZ0 = (MAZE_H - 1) * CELL / 2;
     menuCam = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 800);
-    menuCam.position.set(MX0 - 18, 12, MZ0 + 25);
-    menuCam.lookAt(MX0, 6, MZ0);
+    const aspect = window.innerWidth / window.innerHeight;
+    menuCam.position.set(MX0, 8, aspect < 1 ? MZ0 + 38 : MZ0 + 26);
+    menuCam.lookAt(MX0, 6.5, MZ0);
 
     createFogOverlay();
     initMinimap();
@@ -276,22 +349,12 @@ function init() {
 
         if (menuCam) {
             menuCam.aspect = aspect;
-            menuCam.position.set(MX0, 6, aspect < 1 ? MZ0 + 36 : MZ0 + 22);
-            menuCam.lookAt(MX0, 5, MZ0);
+            menuCam.position.set(MX0, 8, aspect < 1 ? MZ0 + 38 : MZ0 + 26);
+            menuCam.lookAt(MX0, 6.5, MZ0);
             menuCam.updateProjectionMatrix();
         }
         renderer.setSize(window.innerWidth, window.innerHeight);
         if (gameStarted) updateMobileUIToggle();
-    });
-
-    const startBtn = document.getElementById('start-button');
-    if (startBtn) { startBtn.disabled = true; startBtn.textContent = 'Memuat karakter...'; }
-
-    loadQuestions();
-    loadChats();
-    loadCharacters(() => {
-        if (startBtn) { startBtn.disabled = false; startBtn.textContent = 'Mulai Petualangan '; }
-        animate();
     });
 
     renderer.render(scene, menuCam || camera);
@@ -315,10 +378,10 @@ function animate() {
 
     if (gameStarted && !gameWon) {
         if (!questPaused) {
-            updateHazards(dt);
+            updateHazards(dt, t);
             updatePowerUps(dt, t);
             updateCharTrails(dt);
-            if (!arif.moving && !ajeng.moving) {
+            if (!isIntro && !arif.moving && !ajeng.moving) {
                 // ... (existing move logic)
                 const held = getHeldDir();
                 if (moveQueue) {
@@ -332,6 +395,8 @@ function animate() {
             }
             updateCharPos(arif, dt);
             updateCharPos(ajeng, dt);
+            updateCharVisuals(arif, dt);
+            updateCharVisuals(ajeng, dt);
             updateCameraTracking(dt);
 
             // Apply shake to camera
@@ -374,36 +439,104 @@ function animate() {
         const aspect = window.innerWidth / window.innerHeight;
         const MXm = (MAZE_W - 1) * CELL / 2, MZm = (MAZE_H - 1) * CELL / 2;
         if (!menuPhys.initialized) {
-            const initVel = () => new THREE.Vector3((Math.random() - 0.5) * 4, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2);
+            const initVel = () => new THREE.Vector3((Math.random() - 0.5) * 3, (Math.random() - 0.5) * 1.5, (Math.random() - 0.5) * 1);
             menuPhys.arif.vel.copy(initVel());
             menuPhys.ajeng.vel.copy(initVel());
-            arif.group.position.set(MXm - 6, 6, MZm + 17);
-            ajeng.group.position.set(MXm + 6, 6, MZm + 17);
+            arif.group.position.set(MXm - 4.5, 7, MZm + 12);
+            ajeng.group.position.set(MXm + 4.5, 7.5, MZm + 12);
             menuPhys.initialized = true;
         }
         [arif, ajeng].forEach((c, i) => {
             const phys = i === 0 ? menuPhys.arif : menuPhys.ajeng;
             c.group.position.addScaledVector(phys.vel, dt);
-            if (c.group.position.x < MXm - 12 || c.group.position.x > MXm + 12) phys.vel.x *= -1;
-            if (c.group.position.y < 5 || c.group.position.y > 10) phys.vel.y *= -1;
-            c.group.rotation.y += dt;
+            // Tight bounds to keep them in frame and behind UI
+            if (c.group.position.x < MXm - 9 || c.group.position.x > MXm + 9) phys.vel.x *= -1;
+            if (c.group.position.y < 6 || c.group.position.y > 10) phys.vel.y *= -1;
+            if (c.group.position.z < MZm + 5 || c.group.position.z > MZm + 16) phys.vel.z *= -1;
+            c.group.rotation.y += dt * 0.5;
         });
-        menuSynth.update(dt);
+
+        // --- Character-to-Character Collision ---
+        const dist = arif.group.position.distanceTo(ajeng.group.position);
+        const minDist = 3.8; // Approximate radius sum
+        if (dist < minDist) {
+            const normal = arif.group.position.clone().sub(ajeng.group.position).normalize();
+            // Simple elastic bounce
+            const relativeVel = menuPhys.arif.vel.clone().sub(menuPhys.ajeng.vel);
+            const dot = relativeVel.dot(normal);
+            if (dot < 0) {
+                const impulse = normal.multiplyScalar(-1.5 * dot);
+                menuPhys.arif.vel.add(impulse);
+                menuPhys.ajeng.vel.sub(impulse);
+            }
+            // Push apart to prevent sticking
+            const overlap = minDist - dist;
+            arif.group.position.addScaledVector(normal, overlap * 0.5);
+            ajeng.group.position.addScaledVector(normal, -overlap * 0.5);
+        }
         const startBtn = document.getElementById('start-button');
         if (startBtn && !startBtn.onclick_hooked) {
             startBtn.onclick_hooked = true;
             startBtn.onclick = () => { menuSynth.start(); startGame(); };
         }
     }
+    menuSynth.update(dt);
 
-    if (arif && ajeng) {
+    if (arif && ajeng && !gameStarted && !isIntro) {
         arif.group.traverse(o => { if (o.isPointLight) o.intensity = 3.5 + Math.sin(t * 4) * 0.6; });
         ajeng.group.traverse(o => { if (o.isPointLight) o.intensity = 3.5 + Math.sin(t * 4 + Math.PI) * 0.6; });
     }
     updateMeteors(dt);
     updateColorTheme(dt);
     updateParticles(dt);
-    renderer.render(scene, gameStarted ? camera : (menuCam || camera));
+
+    if (isIntro) {
+        introT += dt;
+        const alpha = Math.min(1, introT / introDuration);
+        const eased = alpha * alpha * (3 - 2 * alpha); // smoothstep
+
+        // --- Camera Transition ---
+        const aspect = window.innerWidth / window.innerHeight;
+        const vw = BASE_VIEW * currentZoom;
+        const cx = (MAZE_W - 1) * CELL / 2, cz = (MAZE_H - 1) * CELL / 2;
+
+        // Lerp camera position and projection
+        camera.position.lerpVectors(menuCam.position, new THREE.Vector3(cx + 80, 80, cz + 80), eased);
+        camera.lookAt(cx, 0, cz);
+
+        // --- Character Fly-in ---
+        [arif, ajeng].forEach(c => {
+            c.group.position.lerpVectors(c.introStart, c.introTarget, eased);
+            const scale = 2.2 + (1.0 - 2.2) * eased;
+            c.group.scale.setScalar(scale);
+
+            if (alpha > 0.8) {
+                if (!c.flashlightOn) {
+                    c.flashlightOn = true;
+                    // Optional: play a subtle click SFX here instead of big initiate
+                }
+                const flicker = Math.random() > 0.1 ? 1 : 0.2;
+                c.group.traverse(o => {
+                    if (o.isPointLight && o.targetIntensity) {
+                        o.intensity = o.targetIntensity * flicker * ((alpha - 0.8) / 0.2);
+                    }
+                });
+            }
+        });
+
+        if (alpha >= 1) {
+            if (isIntro) {
+                // Fade in HUD gently when intro ends
+                const h = document.getElementById('hud'), m = document.getElementById('minimap'), mc = document.getElementById('mobile-controls');
+                if (h) h.style.opacity = '1';
+                if (m) m.style.opacity = '1';
+                if (mc) mc.style.opacity = '1';
+                isIntro = false;
+            }
+        }
+    }
+
+    renderer.render(scene, (gameStarted && !isIntro) ? camera : (isIntro ? camera : (menuCam || camera)));
 }
 
 // ── Bootstrap ───────────────────────────────────────────────

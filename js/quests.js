@@ -8,8 +8,7 @@ let duoChats = [];
 
 async function loadChats() {
     try {
-        const resp = await fetch('chat.md');
-        const text = await resp.text();
+        const text = CHAT_MD;
 
         let currentCategory = null;
         const lines = text.split(/\r?\n/);
@@ -51,8 +50,7 @@ async function loadChats() {
 // Parse question.md → questionsPool[]
 async function loadQuestions() {
     try {
-        const resp = await fetch('question.md');
-        const text = await resp.text();
+        const text = QUESTION_MD;
         // Split by dashes, allowing for CRLF or LF line endings
         const blocks = text.split(/\r?\n---\r?\n/).filter(b => b.trim().includes('**'));
 

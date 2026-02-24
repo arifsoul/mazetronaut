@@ -152,10 +152,11 @@ function spawnThrustParticles(char, dt) {
         const size = 0.3 + Math.random() * 0.5;
         const geo = new THREE.PlaneGeometry(size, size);
 
-        // Bright orange/yellow core, fading to red/gray smoke
-        const isFire = Math.random() > 0.4;
-        const color = isFire ? (Math.random() > 0.5 ? 0xffaa00 : 0xffff00) : 0x444444;
-        const opacity = isFire ? 0.9 : 0.5;
+        // Bright orange/yellow core, fading to grey/white smoke
+        const isFire = Math.random() > 0.6; // Less fire, more smoke
+        const color = isFire ? (Math.random() > 0.5 ? 0xffaa00 : 0xffff00) : (Math.random() > 0.5 ? 0x888888 : 0xcccccc);
+        const opacity = isFire ? 0.9 : 0.4;
+        const scale = isFire ? 1.0 : 1.5; // Smoke is larger
 
         const mat = new THREE.MeshBasicMaterial({
             color: color,
@@ -166,6 +167,7 @@ function spawnThrustParticles(char, dt) {
         });
 
         const p = new THREE.Mesh(geo, mat);
+        p.scale.setScalar(scale);
         // Spawn at nozzle position
         p.position.copy(char.group.position);
         p.position.y -= 0.8;
@@ -437,11 +439,13 @@ class CharacterTrail {
     }
 
     spawnSegment(pos) {
-        const geo = this.isPink ? new THREE.SphereGeometry(0.3, 8, 8) : new THREE.BoxGeometry(0.2, 0.2, 0.2);
+        // Arif (blue) gets larger, more glowing bloom-like segments
+        const radius = this.isPink ? 0.3 : 0.45;
+        const geo = this.isPink ? new THREE.SphereGeometry(0.3, 8, 8) : new THREE.SphereGeometry(radius, 12, 12);
         const mat = new THREE.MeshBasicMaterial({
             color: this.color,
             transparent: true,
-            opacity: 0.6,
+            opacity: this.isPink ? 0.6 : 0.85, // Arif is brighter
             blending: THREE.AdditiveBlending
         });
         const mesh = new THREE.Mesh(geo, mat);
