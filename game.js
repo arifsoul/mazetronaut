@@ -14,13 +14,12 @@ const LIGHT_RANGE = 17;
 let scene, camera, renderer;
 let mazeData = [];
 let arif, ajeng;
-let fogOverlay, fogCtx;
-let gameStarted = false;
-let gameWon = false;
 let elapsedSec = 0;
 let timerID = null;
 let particles = [];
 let minimapCvs, minimapCtx;
+let isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+let fogScale = isMobileDevice ? 0.35 : 1.0; // scale down fog canvas resolution on mobile
 let moveQueue = null;
 let lastMoveDir = null;
 let asteroids = [];
@@ -85,21 +84,26 @@ let menuPhys = {
 function createFogOverlay() {
     fogOverlay = document.createElement('canvas');
     fogOverlay.id = 'fog-overlay';
+    // Style forces it to cover screen, actual width/height defines render resolution
     fogOverlay.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5';
-    fogOverlay.width = window.innerWidth;
-    fogOverlay.height = window.innerHeight;
+    fogOverlay.width = window.innerWidth * fogScale;
+    fogOverlay.height = window.innerHeight * fogScale;
     document.getElementById('game-container').appendChild(fogOverlay);
     fogCtx = fogOverlay.getContext('2d');
     window.addEventListener('resize', () => {
-        fogOverlay.width = window.innerWidth;
-        fogOverlay.height = window.innerHeight;
+        fogOverlay.width = window.innerWidth * fogScale;
+        fogOverlay.height = window.innerHeight * fogScale;
     });
 }
 
 function projectToScreen(worldPos) {
     const v = worldPos.clone();
     v.project(camera);
-    return { x: (v.x + 1) / 2 * fogOverlay.width, y: (-v.y + 1) / 2 * fogOverlay.height };
+    // Multiply by fogScale to map to the reduced canvas resolution
+    return {
+        x: ((v.x + 1) / 2) * (window.innerWidth * fogScale),
+        y: ((-v.y + 1) / 2) * (window.innerHeight * fogScale)
+    };
 }
 
 function getCharScreenAngle(charGroup) {
@@ -267,9 +271,14 @@ function init() {
 
     setupCamera();
 
-    renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    // Disable antialiasing on mobile for better performance
+    renderer = new THREE.WebGLRenderer({
+        antialias: !isMobileDevice,
+        powerPreference: 'high-performance'
+    });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    // Cap pixel ratio at 1.0 on mobile to prevent extreme fill-rate lag on high DPI screens
+    renderer.setPixelRatio(isMobileDevice ? 1 : Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     document.getElementById('game-container').appendChild(renderer.domElement);
